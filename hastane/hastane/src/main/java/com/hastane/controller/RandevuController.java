@@ -12,7 +12,7 @@ import com.hastane.entity.Randevu;
 import com.hastane.service.RandevuService;
 
 @RestController
-@RequestMapping("/api/randevular")
+@RequestMapping("/api/randevular")//https://hastanespringboot.onrender.com/api/randevular
 public class RandevuController {
 
     private final RandevuService randevuService;
@@ -26,9 +26,9 @@ public class RandevuController {
             @RequestBody RandevuRequest request) {
 
         Randevu randevu = randevuService.randevuOlustur(
-                request.getDoktorId(),
-                request.getHastaId(),
-                request.getHastaneId(),
+                request.getDoktorOid(),
+                request.getHastaOid(),
+                request.getHastaneOid(),
                 request.getRandevuTarihi(),
                 request.getRandevuSaati()
         );
