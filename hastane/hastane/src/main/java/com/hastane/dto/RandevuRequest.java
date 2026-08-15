@@ -1,35 +1,37 @@
 package com.hastane.dto;
 
+import java.util.UUID;
+
 public class RandevuRequest {
 
-    private Long doktorId;
-    private Long hastaId;
-    private Long hastaneId;
+    private UUID doktorOid;
+    private UUID hastaOid;
+    private UUID hastaneOid;
     private Integer randevuTarihi;
     private Integer randevuSaati;
 
-    public Long getDoktorId() {
-        return doktorId;
+    public UUID getDoktorOid() {
+        return doktorOid;
     }
 
-    public void setDoktorId(Long doktorId) {
-        this.doktorId = doktorId;
+    public void setDoktorOid(UUID doktorOid) {
+        this.doktorOid = doktorOid;
     }
 
-    public Long getHastaId() {
-        return hastaId;
+    public UUID getHastaOid() {
+        return hastaOid;
     }
 
-    public void setHastaId(Long hastaId) {
-        this.hastaId = hastaId;
+    public void setHastaOid(UUID hastaOid) {
+        this.hastaOid = hastaOid;
     }
 
-    public Long getHastaneId() {
-        return hastaneId;
+    public UUID getHastaneOid() {
+        return hastaneOid;
     }
 
-    public void setHastaneId(Long hastaneId) {
-        this.hastaneId = hastaneId;
+    public void setHastaneOid(UUID hastaneOid) {
+        this.hastaneOid = hastaneOid;
     }
 
     public Integer getRandevuTarihi() {

@@ -1,5 +1,7 @@
 package com.hastane.entity;
 
+import java.util.UUID;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -8,18 +10,19 @@ public class Randevu {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "oid")
+    private UUID oid;
 
     private Short status;
 
-    @Column(name = "doktor_id")
-    private Long doktorId;
+    @Column(name = "doktor_oid")
+    private UUID doktorOid;
 
-    @Column(name = "hasta_id")
-    private Long hastaId;
+    @Column(name = "hasta_oid")
+    private UUID hastaOid;
 
-    @Column(name = "hastane_id")
-    private Long hastaneId;
+    @Column(name = "hastane_oid")
+    private UUID hastaneOid;
 
     @Column(name = "randevu_tarihi")
     private Integer randevuTarihi;
@@ -36,12 +39,12 @@ public class Randevu {
     private String durum;
 
 
-    public Long getId() {
-        return id;
+    public UUID getOid() {
+        return oid;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setOid(UUID oid) {
+        this.oid = oid;
     }
 
     public Short getStatus() {
@@ -52,28 +55,28 @@ public class Randevu {
         this.status = status;
     }
 
-    public Long getDoktorId() {
-        return doktorId;
+    public UUID getDoktorOid() {
+        return doktorOid;
     }
 
-    public void setDoktorId(Long doktorId) {
-        this.doktorId = doktorId;
+    public void setDoktorOid(UUID doktorOid) {
+        this.doktorOid = doktorOid;
     }
 
-    public Long getHastaId() {
-        return hastaId;
+    public UUID getHastaOid() {
+        return hastaOid;
     }
 
-    public void setHastaId(Long hastaId) {
-        this.hastaId = hastaId;
+    public void setHastaOid(UUID hastaOid) {
+        this.hastaOid = hastaOid;
     }
 
-    public Long getHastaneId() {
-        return hastaneId;
+    public UUID getHastaneOid() {
+        return hastaneOid;
     }
 
-    public void setHastaneId(Long hastaneId) {
-        this.hastaneId = hastaneId;
+    public void setHastaneOid(UUID hastaneOid) {
+        this.hastaneOid = hastaneOid;
     }
 
     public Integer getRandevuTarihi() {

@@ -1,6 +1,7 @@
 package com.hastane.service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -17,9 +18,9 @@ public class RandevuService {
     }
 
     public Randevu randevuOlustur(
-            Long doktorId,
-            Long hastaId,
-            Long hastaneId,
+            UUID doktorOid,
+            UUID hastaOid,
+            UUID hastaneOid,
             Integer randevuTarihi,
             Integer randevuSaati) {
 
@@ -38,9 +39,9 @@ public class RandevuService {
         Randevu randevu = new Randevu();
 
         randevu.setStatus((short) 1);
-        randevu.setDoktorId(doktorId);
-        randevu.setHastaId(hastaId);
-        randevu.setHastaneId(hastaneId);
+        randevu.setDoktorOid(doktorOid);
+        randevu.setHastaOid(hastaOid);
+        randevu.setHastaneOid(hastaneOid);
         randevu.setRandevuTarihi(randevuTarihi);
         randevu.setRandevuSaati(randevuSaati);
         randevu.setProcessDate(processDate);
