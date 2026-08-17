@@ -130,12 +130,64 @@ class RandevuServiceTests {
                 request.getRandevuTarihi()))
                 .thenReturn(List.of(randevu));
 
-        List<Randevu> sonuc = randevuService.oturumdakiDoktorunGunlukRandevulariniGetir(
-                kullaniciOid,
-                request.getRandevuTarihi());
+        List<Randevu> sonuc = randevuService
+                .oturumdakiKullanicininGunlukRandevulariniGetir(
+                        kullaniciOid,
+                        "DOKTOR",
+                        request.getRandevuTarihi());
 
         assertEquals(List.of(randevu), sonuc);
         verify(doktorRepository).findByKullaniciOidAndAktif(kullaniciOid, (short) 1);
+    }
+
+    @Test
+    void hastaSadeceKendiRandevulariniGorur() {
+        UUID kullaniciOid = request.getHastaOid();
+        Randevu randevu = new Randevu();
+        when(randevuRepository.findByHastaOidAndRandevuTarihiOrderByRandevuSaatiAsc(
+                kullaniciOid,
+                request.getRandevuTarihi()))
+                .thenReturn(List.of(randevu));
+
+        List<Randevu> sonuc = randevuService
+                .oturumdakiKullanicininGunlukRandevulariniGetir(
+                        kullaniciOid,
+                        "HASTA",
+                        request.getRandevuTarihi());
+
+        assertEquals(List.of(randevu), sonuc);
+        verify(randevuRepository).findByHastaOidAndRandevuTarihiOrderByRandevuSaatiAsc(
+                kullaniciOid,
+                request.getRandevuTarihi());
+    }
+
+    @Test
+    void mudurSecilenGundekiTumRandevulariGorur() {
+        UUID kullaniciOid = UUID.randomUUID();
+        Randevu randevu = new Randevu();
+        when(randevuRepository.findByRandevuTarihiOrderByRandevuSaatiAsc(
+                request.getRandevuTarihi()))
+                .thenReturn(List.of(randevu));
+
+        List<Randevu> sonuc = randevuService
+                .oturumdakiKullanicininGunlukRandevulariniGetir(
+                        kullaniciOid,
+                        "MUDUR",
+                        request.getRandevuTarihi());
+
+        assertEquals(List.of(randevu), sonuc);
+        verify(randevuRepository).findByRandevuTarihiOrderByRandevuSaatiAsc(
+                request.getRandevuTarihi());
+    }
+
+    @Test
+    void desteklenmeyenRolReddedilir() {
+        assertThrows(
+                GecersizRandevuBilgisiException.class,
+                () -> randevuService.oturumdakiKullanicininGunlukRandevulariniGetir(
+                        UUID.randomUUID(),
+                        "BILINMEYEN",
+                        request.getRandevuTarihi()));
     }
 
     @Test

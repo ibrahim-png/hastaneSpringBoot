@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doktor Randevu Takvimi</title>
+    <title>Randevu Takvimi</title>
     <style>
         :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f2f6fb; }
         * { box-sizing: border-box; }
@@ -94,18 +94,18 @@
     <div class="login-visual">
         <div class="brand"><span class="brand-mark">+</span><span>Hastane Yönetimi</span></div>
         <div class="visual-copy">
-            <p class="eyebrow" style="color:#72ddd4">Doktor portalı</p>
-            <h1>Gününüzü tek bakışta planlayın.</h1>
-            <p>Takvimden bir gün seçin, randevu saatlerinizi düzenli ve hızlı şekilde görüntüleyin.</p>
+            <p class="eyebrow" style="color:#72ddd4">Randevu portalı</p>
+            <h1>Randevularınızı tek bakışta görün.</h1>
+            <p>Takvimden bir gün seçin, rolünüze uygun randevu bilgilerini düzenli ve hızlı şekilde görüntüleyin.</p>
         </div>
-        <div class="visual-foot">Güvenli doktor erişimi · Hastane Randevu Sistemi</div>
+        <div class="visual-foot">Güvenli kullanıcı erişimi · Hastane Randevu Sistemi</div>
     </div>
     <div class="login-panel">
         <form class="login-box" id="loginForm">
             <p class="eyebrow">Hoş geldiniz</p>
-            <h2>Doktor girişi</h2>
-            <p class="subtext">Randevu takviminize ulaşmak için doktor hesabınızla giriş yapın.</p>
-            <div class="field"><label for="email">E-posta adresi</label><input id="email" type="email" autocomplete="username" placeholder="doktor@hastane.com" required></div>
+            <h2>Kullanıcı girişi</h2>
+            <p class="subtext">Randevu takviminize ulaşmak için hesabınızla giriş yapın.</p>
+            <div class="field"><label for="email">E-posta adresi</label><input id="email" type="email" autocomplete="username" placeholder="kullanici@hastane.com" required></div>
             <div class="field"><label for="password">Şifre</label><input id="password" type="password" autocomplete="current-password" placeholder="Şifrenizi girin" required></div>
             <button class="primary" id="loginButton" type="submit">Giriş yap</button>
             <p class="form-error" id="loginError" role="alert" hidden></p>
@@ -116,10 +116,10 @@
 <section class="dashboard" id="dashboardView" hidden>
     <header class="topbar">
         <div class="brand"><span class="brand-mark">+</span><span>Hastane Yönetimi</span></div>
-        <div class="user-area"><div class="user-copy"><span class="user-email" id="userEmail"></span><span class="user-role">Doktor hesabı</span></div><button class="logout" id="logoutButton" type="button">Çıkış yap</button></div>
+        <div class="user-area"><div class="user-copy"><span class="user-email" id="userEmail"></span><span class="user-role" id="userRole"></span></div><button class="logout" id="logoutButton" type="button">Çıkış yap</button></div>
     </header>
     <main class="content">
-        <div class="page-head"><div><p class="eyebrow">Randevu yönetimi</p><h1>Randevu takvimim</h1></div><button class="today-button" id="todayButton" type="button">Bugüne git</button></div>
+        <div class="page-head"><div><p class="eyebrow">Randevu yönetimi</p><h1 id="pageTitle">Randevu takvimim</h1></div><button class="today-button" id="todayButton" type="button">Bugüne git</button></div>
         <div class="planner">
             <section class="card calendar-card" aria-label="Randevu takvimi">
                 <div class="calendar-head"><h2 id="monthTitle"></h2><div class="calendar-nav"><button class="icon-button" id="previousMonth" type="button" aria-label="Önceki ay">‹</button><button class="icon-button" id="nextMonth" type="button" aria-label="Sonraki ay">›</button></div></div>
@@ -136,8 +136,8 @@
 
 <script>
     const API_BASE_URL = "https://hastanespringboot.onrender.com";
-    const TOKEN_KEY = "hastaneDoktorToken";
-    const USER_KEY = "hastaneDoktorUser";
+    const TOKEN_KEY = "hastaneKullaniciToken";
+    const USER_KEY = "hastaneKullanici";
     const today = new Date();
     let appointmentsRequest;
 
@@ -174,6 +174,10 @@
     function showDashboard() {
         loginView.hidden = true; dashboardView.hidden = false;
         document.querySelector("#userEmail").textContent = state.user.email;
+        const role = String(state.user.rol).toUpperCase();
+        const roleNames = { DOKTOR: "Doktor hesabı", HASTA: "Hasta hesabı", MUDUR: "Müdür hesabı" };
+        document.querySelector("#userRole").textContent = roleNames[role] || `${role} hesabı`;
+        document.querySelector("#pageTitle").textContent = role === "MUDUR" ? "Günlük randevular" : "Randevu takvimim";
         renderCalendar(); loadAppointments();
     }
 
@@ -199,7 +203,6 @@
             });
             const payload = await readResponse(response);
             if (!response.ok) throw new Error(errorMessage(payload, "E-posta veya şifre hatalı."));
-            if (String(payload.rol).toUpperCase() !== "DOKTOR") throw new Error("Bu ekran yalnızca doktor hesapları tarafından kullanılabilir.");
             if (!payload.accessToken) throw new Error("Sunucu geçerli bir erişim tokenı döndürmedi.");
             state.token = payload.accessToken;
             state.user = { email: payload.email, rol: payload.rol, kullaniciOid: payload.kullaniciOid };
@@ -261,10 +264,22 @@
             const statusClass = ["IPTAL", "İPTAL", "CANCELLED"].includes(statusText.toUpperCase()) ? " cancelled" : "";
             const time = document.createElement("time"); time.className = "appointment-time"; time.textContent = formatTime(appointment.randevuSaati);
             const info = document.createElement("div"); info.className = "appointment-info";
-            const label = document.createElement("strong"); label.textContent = "Hasta randevusu";
-            const patient = document.createElement("span"); patient.textContent = appointment.hastaOid || "Hasta bilgisi yok"; patient.title = appointment.hastaOid || "";
+            const label = document.createElement("strong");
+            const detail = document.createElement("span");
+            const role = String(state.user.rol).toUpperCase();
+            if (role === "HASTA") {
+                label.textContent = "Doktor randevusu";
+                detail.textContent = `Doktor: ${appointment.doktorOid || "Bilgi yok"}`;
+            } else if (role === "MUDUR") {
+                label.textContent = "Hasta randevusu";
+                detail.textContent = `Hasta: ${appointment.hastaOid || "—"} · Doktor: ${appointment.doktorOid || "—"}`;
+            } else {
+                label.textContent = "Hasta randevusu";
+                detail.textContent = `Hasta: ${appointment.hastaOid || "Bilgi yok"}`;
+            }
+            detail.title = detail.textContent;
             const status = document.createElement("span"); status.className = `status${statusClass}`; status.textContent = statusText;
-            info.append(label, patient); item.append(time, info, status);
+            info.append(label, detail); item.append(time, info, status);
             list.appendChild(item);
         });
         appointmentsBody.appendChild(list);
@@ -277,7 +292,7 @@
         appointmentSummary.textContent = "Randevular yükleniyor…";
         appointmentsBody.innerHTML = '<div class="loading"><div><div class="spinner"></div>Takvim kontrol ediliyor…</div></div>';
         try {
-            const response = await fetch(`${API_BASE_URL}/api/randevular/doktor?randevuTarihi=${apiDate(state.selectedDate)}`, {
+            const response = await fetch(`${API_BASE_URL}/api/randevular/ben?randevuTarihi=${apiDate(state.selectedDate)}`, {
                 headers: { "Authorization": `Bearer ${state.token}`, "Accept": "application/json" },
                 signal: appointmentsRequest.signal
             });
@@ -301,7 +316,7 @@
     document.querySelector("#nextMonth").addEventListener("click", () => selectMonth(1));
     document.querySelector("#todayButton").addEventListener("click", () => { state.selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()); state.visibleMonth = new Date(today.getFullYear(), today.getMonth(), 1); renderCalendar(); loadAppointments(); });
     document.querySelector("#logoutButton").addEventListener("click", () => showLogin());
-    if (state.token && state.user?.rol?.toUpperCase() === "DOKTOR") showDashboard(); else showLogin();
+    if (state.token && state.user?.rol) showDashboard(); else showLogin();
 </script>
 </body>
 </html>

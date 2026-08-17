@@ -150,6 +150,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/doktorlar/**").hasRole("MUDUR")
                         .requestMatchers(HttpMethod.GET, "/api/doktorlar/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/randevular").hasAnyRole("MUDUR", "HASTA")
+                        .requestMatchers(HttpMethod.GET, "/api/randevular/ben").hasAnyRole("MUDUR", "DOKTOR", "HASTA")
                         .requestMatchers(HttpMethod.GET, "/api/randevular/doktor").hasRole("DOKTOR")
                         .requestMatchers(HttpMethod.GET, "/api/randevular/dolu-saatler").hasAnyRole("MUDUR", "DOKTOR", "HASTA")
                         .requestMatchers(HttpMethod.GET, "/api/randevular").hasRole("MUDUR")

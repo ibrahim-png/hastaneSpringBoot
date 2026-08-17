@@ -73,6 +73,21 @@ public class RandevuController {
         return ResponseEntity.ok(randevular);
     }
 
+    @GetMapping(value = "/ben", params = "randevuTarihi")
+    @PreAuthorize("hasAnyRole('MUDUR', 'DOKTOR', 'HASTA')")
+    public ResponseEntity<List<Randevu>> oturumdakiKullanicininGunlukRandevulariniGetir(
+            @RequestParam Integer randevuTarihi,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        List<Randevu> randevular = randevuService
+                .oturumdakiKullanicininGunlukRandevulariniGetir(
+                        UUID.fromString(jwt.getSubject()),
+                        jwt.getClaimAsString("rol"),
+                        randevuTarihi);
+
+        return ResponseEntity.ok(randevular);
+    }
+
     @GetMapping(value = "/dolu-saatler", params = {"doktorOid", "randevuTarihi"})
     @PreAuthorize("hasAnyRole('MUDUR', 'DOKTOR', 'HASTA')")
     public ResponseEntity<List<DoluSaatResponse>> doktorunDoluSaatleriniGetir(

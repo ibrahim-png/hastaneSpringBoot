@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -102,6 +103,32 @@ public class RandevuService {
         return randevuRepository.findByDoktorOidAndRandevuTarihiOrderByRandevuSaatiAsc(
                 doktor.getOid(),
                 randevuTarihi);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Randevu> oturumdakiKullanicininGunlukRandevulariniGetir(
+            UUID kullaniciOid,
+            String rol,
+            Integer randevuTarihi) {
+        if (kullaniciOid == null || rol == null || rol.isBlank()) {
+            throw new GecersizRandevuBilgisiException(
+                    "Kullanici ve rol bilgisi zorunludur.");
+        }
+        randevuTarihiniDogrula(randevuTarihi);
+
+        return switch (rol.toUpperCase(Locale.ROOT)) {
+            case "DOKTOR" -> oturumdakiDoktorunGunlukRandevulariniGetir(
+                    kullaniciOid,
+                    randevuTarihi);
+            case "HASTA" -> randevuRepository
+                    .findByHastaOidAndRandevuTarihiOrderByRandevuSaatiAsc(
+                            kullaniciOid,
+                            randevuTarihi);
+            case "MUDUR" -> randevuRepository
+                    .findByRandevuTarihiOrderByRandevuSaatiAsc(randevuTarihi);
+            default -> throw new GecersizRandevuBilgisiException(
+                    "Desteklenmeyen kullanici rolu.");
+        };
     }
 
     @Transactional(readOnly = true)
