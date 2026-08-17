@@ -1,0 +1,60 @@
+package com.hastane.controller;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.hastane.dto.BransResponse;
+import com.hastane.dto.DoktorSecimResponse;
+import com.hastane.dto.MisafirRandevuRequest;
+import com.hastane.dto.MisafirRandevuResponse;
+import com.hastane.dto.MusaitSaatResponse;
+import com.hastane.service.MisafirRandevuService;
+
+@RestController
+@RequestMapping("/api/public")
+public class PublicRandevuController {
+
+    private final MisafirRandevuService misafirRandevuService;
+
+    public PublicRandevuController(MisafirRandevuService misafirRandevuService) {
+        this.misafirRandevuService = misafirRandevuService;
+    }
+
+    @GetMapping("/branslar")
+    public List<BransResponse> aktifBranslariGetir() {
+        return misafirRandevuService.aktifBranslariGetir();
+    }
+
+    @GetMapping("/doktorlar")
+    public List<DoktorSecimResponse> branstakiAktifDoktorlariGetir(
+            @RequestParam UUID bransOid) {
+        return misafirRandevuService.branstakiAktifDoktorlariGetir(bransOid);
+    }
+
+    @GetMapping("/doktorlar/{doktorOid}/saatler")
+    public List<MusaitSaatResponse> doktorunSaatleriniGetir(
+            @PathVariable UUID doktorOid,
+            @RequestParam Integer randevuTarihi) {
+        return misafirRandevuService.doktorunSaatleriniGetir(
+                doktorOid,
+                randevuTarihi);
+    }
+
+    @PostMapping("/randevular")
+    public ResponseEntity<MisafirRandevuResponse> randevuOlustur(
+            @RequestBody MisafirRandevuRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(misafirRandevuService.randevuOlustur(request));
+    }
+}

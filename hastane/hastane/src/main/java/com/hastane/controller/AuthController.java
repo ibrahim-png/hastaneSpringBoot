@@ -57,6 +57,11 @@ public class AuthController {
         }
 
         KullaniciPrincipal kullanici = (KullaniciPrincipal) authentication.getPrincipal();
+        if (!"DOKTOR".equals(kullanici.getRol())
+                && !"MUDUR".equals(kullanici.getRol())) {
+            throw new KimlikDogrulamaException(
+                    "Personel girisi yalnizca doktor ve mudur hesaplarina aciktir.");
+        }
         return ResponseEntity.ok(jwtTokenService.accessTokenOlustur(kullanici));
     }
 

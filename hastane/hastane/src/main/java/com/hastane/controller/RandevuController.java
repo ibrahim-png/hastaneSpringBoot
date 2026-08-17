@@ -31,14 +31,10 @@ public class RandevuController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('MUDUR', 'HASTA')")
+    @PreAuthorize("hasRole('MUDUR')")
     public ResponseEntity<Randevu> randevuOlustur(
             @RequestBody RandevuRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-
-        if ("HASTA".equals(jwt.getClaimAsString("rol"))) {
-            request.setHastaOid(UUID.fromString(jwt.getSubject()));
-        }
 
         Randevu randevu = randevuService.randevuOlustur(request);
 
@@ -74,7 +70,7 @@ public class RandevuController {
     }
 
     @GetMapping(value = "/ben", params = "randevuTarihi")
-    @PreAuthorize("hasAnyRole('MUDUR', 'DOKTOR', 'HASTA')")
+    @PreAuthorize("hasAnyRole('MUDUR', 'DOKTOR')")
     public ResponseEntity<List<Randevu>> oturumdakiKullanicininGunlukRandevulariniGetir(
             @RequestParam Integer randevuTarihi,
             @AuthenticationPrincipal Jwt jwt) {

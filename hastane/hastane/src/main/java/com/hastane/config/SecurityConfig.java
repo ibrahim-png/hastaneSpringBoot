@@ -145,14 +145,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
                         .requestMatchers("/api/auth/giris").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/doktorlar/**").hasRole("MUDUR")
                         .requestMatchers(HttpMethod.PATCH, "/api/doktorlar/**").hasRole("MUDUR")
                         .requestMatchers(HttpMethod.GET, "/api/doktorlar/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/randevular").hasAnyRole("MUDUR", "HASTA")
-                        .requestMatchers(HttpMethod.GET, "/api/randevular/ben").hasAnyRole("MUDUR", "DOKTOR", "HASTA")
+                        .requestMatchers(HttpMethod.POST, "/api/randevular").hasRole("MUDUR")
+                        .requestMatchers(HttpMethod.GET, "/api/randevular/ben").hasAnyRole("MUDUR", "DOKTOR")
                         .requestMatchers(HttpMethod.GET, "/api/randevular/doktor").hasRole("DOKTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/randevular/dolu-saatler").hasAnyRole("MUDUR", "DOKTOR", "HASTA")
+                        .requestMatchers(HttpMethod.GET, "/api/randevular/dolu-saatler").hasAnyRole("MUDUR", "DOKTOR")
                         .requestMatchers(HttpMethod.GET, "/api/randevular").hasRole("MUDUR")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
