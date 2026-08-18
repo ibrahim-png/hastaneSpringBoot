@@ -106,11 +106,6 @@ public class MisafirRandevuService {
                 request == null ? null : request.telefon());
 
         Hasta hasta = hastaRepository.findByTckn(request.tckn().strip())
-                .map(mevcut -> mevcutHastayiDogrula(
-                        mevcut,
-                        request.ad(),
-                        request.soyad(),
-                        request.telefon()))
                 .orElse(null);
         if (hasta == null) {
             return List.of();
@@ -155,13 +150,8 @@ public class MisafirRandevuService {
                 request == null ? null : request.telefon());
 
         Hasta hasta = hastaRepository.findByTckn(request.tckn().strip())
-                .map(mevcut -> mevcutHastayiDogrula(
-                        mevcut,
-                        request.ad(),
-                        request.soyad(),
-                        request.telefon()))
                 .orElseThrow(() -> new GecersizRandevuBilgisiException(
-                        "Hasta bilgileri dogrulanamadi."));
+                        "Bu TCKN ile kayitli hasta bulunamadi."));
 
         Randevu randevu = randevuRepository.findById(randevuOid)
                 .filter(mevcut -> mevcut.getHastaOid().equals(hasta.getOid()))
@@ -188,7 +178,6 @@ public class MisafirRandevuService {
         }
 
         Hasta hasta = hastaRepository.findByTckn(request.tckn().strip())
-                .map(mevcutHasta -> mevcutHastayiDogrula(mevcutHasta, request))
                 .orElseGet(() -> hastaRepository.save(yeniHasta(request)));
 
         LocalDateTime now = LocalDateTime.now(ISTANBUL);
@@ -269,31 +258,6 @@ public class MisafirRandevuService {
         return doktorRepository.kilitleyerekBul(doktorOid, AKTIF)
                 .orElseThrow(() -> new DoktorBulunamadiException(
                         "Aktif doktor bulunamadi."));
-    }
-
-    private Hasta mevcutHastayiDogrula(
-            Hasta hasta,
-            MisafirRandevuRequest request) {
-        return mevcutHastayiDogrula(
-                hasta,
-                request.ad(),
-                request.soyad(),
-                request.telefon());
-    }
-
-    private Hasta mevcutHastayiDogrula(
-            Hasta hasta,
-            String ad,
-            String soyad,
-            String telefon) {
-        if (!hasta.getAd().strip().equalsIgnoreCase(ad.strip())
-                || !hasta.getSoyad().strip().equalsIgnoreCase(soyad.strip())
-                || !telefonuNormalizeEt(hasta.getTelefon())
-                        .equals(telefonuNormalizeEt(telefon))) {
-            throw new GecersizRandevuBilgisiException(
-                    "Hasta bilgileri dogrulanamadi.");
-        }
-        return hasta;
     }
 
     private Hasta yeniHasta(MisafirRandevuRequest request) {

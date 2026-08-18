@@ -31,7 +31,6 @@ import com.hastane.entity.Doktor;
 import com.hastane.entity.Hasta;
 import com.hastane.entity.Randevu;
 import com.hastane.exception.RandevuCakismaException;
-import com.hastane.exception.GecersizRandevuBilgisiException;
 import com.hastane.repository.BransRepository;
 import com.hastane.repository.DoktorRepository;
 import com.hastane.repository.HastaRepository;
@@ -191,18 +190,47 @@ class MisafirRandevuServiceTests {
     }
 
     @Test
-    void hastaBilgileriEslesmezseRandevulariGostermez() {
+    void mevcutHastaTcknIleBulunurDigerBilgilerAkisiEngellemez() {
         Hasta hasta = hastaOlustur();
         when(hastaRepository.findByTckn("12345678901")).thenReturn(Optional.of(hasta));
-
-        assertThrows(GecersizRandevuBilgisiException.class,
-                () -> service.hastaninAktifRandevulariniGetir(
-                        new HastaBilgileriRequest(
-                                "Baska", "Kisi", "12345678901", "05551234567")));
-
-        verify(randevuRepository, never())
+        when(randevuRepository
                 .findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
-                        any(), any());
+                        hasta.getOid(), "AKTIF"))
+                .thenReturn(List.of());
+
+        List<MevcutRandevuResponse> sonuc = service.hastaninAktifRandevulariniGetir(
+                new HastaBilgileriRequest(
+                        "Baska", "Kisi", "12345678901", "05551234567"));
+
+        assertTrue(sonuc.isEmpty());
+        verify(randevuRepository)
+                .findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
+                        hasta.getOid(), "AKTIF");
+    }
+
+    @Test
+    void mevcutTcknIleYeniRandevuOlustururkenDigerBilgilerEslesmekZorundaDegildir() {
+        Hasta hasta = hastaOlustur();
+        when(doktorRepository.kilitleyerekBul(doktor.getOid(), (short) 1))
+                .thenReturn(Optional.of(doktor));
+        when(randevuRepository
+                .findByDoktorOidAndRandevuTarihiAndDurumOrderByRandevuSaatiAsc(
+                        doktor.getOid(), gelecekHaftaIci, "AKTIF"))
+                .thenReturn(List.of());
+        when(hastaRepository.findByTckn("12345678901")).thenReturn(Optional.of(hasta));
+        when(randevuRepository.save(any(Randevu.class))).thenAnswer(invocation -> {
+            Randevu randevu = invocation.getArgument(0);
+            randevu.setOid(UUID.randomUUID());
+            return randevu;
+        });
+
+        MisafirRandevuResponse sonuc = service.randevuOlustur(new MisafirRandevuRequest(
+                "Farkli", "Bilgi", "12345678901", "05000000000",
+                doktor.getOid(), gelecekHaftaIci, 90000));
+
+        assertEquals(gelecekHaftaIci, sonuc.randevuTarihi());
+        verify(hastaRepository, never()).save(any(Hasta.class));
+        verify(randevuRepository).save(any(Randevu.class));
     }
 
     private Hasta hastaOlustur() {

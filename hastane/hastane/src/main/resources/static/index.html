@@ -59,7 +59,7 @@
         .form-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
         .form-actions .primary { flex: 1; }
         .form-actions .outline-button { min-height: 49px; }
-        .existing-bookings { margin-top: 21px; padding-top: 20px; border-top: 1px solid #e7edf1; }
+        .existing-bookings { margin: 0 0 21px; padding: 0 0 20px; border-bottom: 1px solid #e7edf1; }
         .existing-bookings h3 { margin: 0 0 5px; font-size: 1rem; }
         .existing-bookings > p { margin: 0 0 13px; color: #758295; font-size: .82rem; line-height: 1.5; }
         .existing-booking-list { display: grid; gap: 9px; }
@@ -148,11 +148,6 @@
                     </div>
                     <div class="field" style="margin-top:17px"><label for="patientTckn">T.C. Kimlik Numarası</label><input id="patientTckn" inputmode="numeric" minlength="11" maxlength="11" pattern="[0-9]{11}" placeholder="11 haneli TCKN" required><p class="field-help">T.C. kimlik numaranız yalnızca randevu kaydı için kullanılır.</p></div>
                     <div class="field"><label for="patientPhone">Telefon numarası</label><input id="patientPhone" type="tel" maxlength="20" autocomplete="tel" placeholder="05XX XXX XX XX" required></div>
-                    <div class="existing-bookings" id="existingBookings" hidden>
-                        <h3>Mevcut randevularınız</h3>
-                        <p>TCKN’nize bağlı aktif randevuları buradan iptal edebilirsiniz.</p>
-                        <div class="existing-booking-list" id="existingBookingList"></div>
-                    </div>
                     <button class="primary" id="continueButton" type="button">Randevularımı kontrol et ve devam et</button>
                     <p class="message error" id="patientError" role="alert" hidden></p>
                 </div>
@@ -160,6 +155,11 @@
             <section class="card" id="appointmentStep" hidden>
                 <div class="card-head"><p class="eyebrow">2. Adım</p><h2>Randevu seçimi</h2><p>Branş, doktor, tarih ve uygun saati seçin</p></div>
                 <div class="card-body">
+                    <div class="existing-bookings" id="existingBookings" hidden>
+                        <h3>Mevcut randevularınız</h3>
+                        <p>TCKN’nize bağlı aktif randevuları buradan iptal edebilirsiniz.</p>
+                        <div class="existing-booking-list" id="existingBookingList"></div>
+                    </div>
                     <div class="steps"><span class="step active"></span><span class="step" id="doctorStep"></span><span class="step" id="timeStep"></span></div>
                     <div class="field"><label for="branchSelect">Branş</label><select id="branchSelect" required><option value="">Branşlar yükleniyor…</option></select></div>
                     <div class="field"><label for="doctorSelect">Doktor</label><select id="doctorSelect" disabled required><option value="">Önce branş seçin</option></select></div>
@@ -231,7 +231,6 @@
     const patientInfoStep = document.querySelector("#patientInfoStep");
     const appointmentStep = document.querySelector("#appointmentStep");
     const continueButton = document.querySelector("#continueButton");
-    let patientVerified = false;
     appointmentDate.min = inputDate(today);
 
     function patientPayload() {
@@ -254,10 +253,6 @@
         patientError.hidden = true;
         const patientFields = patientInfoStep.querySelectorAll("input");
         if (![...patientFields].every(field => field.reportValidity())) return;
-        if (patientVerified) {
-            await openAppointmentStep();
-            return;
-        }
         continueButton.disabled = true;
         continueButton.textContent = "Bilgiler kontrol ediliyor…";
         try {
@@ -270,36 +265,22 @@
             if (!response.ok) throw new Error(errorMessage(data,"Hasta bilgileri kontrol edilemedi."));
             const bookings = Array.isArray(data) ? data : [];
             renderExistingBookings(bookings);
-            patientVerified = true;
-            if (bookings.length) {
-                continueButton.textContent = "Yeni randevu için branş seçimine devam et";
-                document.querySelector("#existingBookings").scrollIntoView({ behavior: "smooth", block: "center" });
-            } else {
-                await openAppointmentStep();
-            }
+            await openAppointmentStep();
         } catch (error) {
             patientError.textContent = error.message;
             patientError.hidden = false;
         } finally {
             continueButton.disabled = false;
-            if (!patientVerified) continueButton.textContent = "Randevularımı kontrol et ve devam et";
+            continueButton.textContent = "Randevularımı kontrol et ve devam et";
         }
     });
 
     async function openAppointmentStep() {
-        continueButton.textContent = "Branş seçimine devam et";
         patientInfoStep.hidden = true;
         appointmentStep.hidden = false;
         await loadBranches();
         appointmentStep.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-
-    patientInfoStep.querySelectorAll("input").forEach(input => input.addEventListener("input", () => {
-        if (!patientVerified) return;
-        patientVerified = false;
-        document.querySelector("#existingBookings").hidden = true;
-        continueButton.textContent = "Randevularımı kontrol et ve devam et";
-    }));
 
     function renderExistingBookings(data) {
         const container = document.querySelector("#existingBookings");
@@ -327,7 +308,7 @@
 
     async function cancelBooking(bookingOid, button, item) {
         if (!window.confirm("Bu randevuyu iptal etmek istediğinize emin misiniz?")) return;
-        patientError.hidden = true;
+        bookingError.hidden = true;
         button.disabled = true;
         button.textContent = "İptal ediliyor…";
         try {
@@ -343,8 +324,7 @@
                 document.querySelector("#existingBookings").hidden = true;
             }
         } catch (error) {
-            patientError.textContent = error.message;
-            patientError.hidden = false;
+            showBookingError(error.message);
             button.disabled = false;
             button.textContent = "İptal et";
         }
@@ -421,7 +401,7 @@
     });
 
     function showBookingError(message) { bookingError.textContent = message; bookingError.hidden = false; }
-    document.querySelector("#newBooking").addEventListener("click", () => { document.querySelector("#bookingForm").reset(); document.querySelector("#bookingForm").hidden = false; document.querySelector("#bookingSuccess").hidden = true; patientInfoStep.hidden = false; appointmentStep.hidden = true; document.querySelector("#existingBookings").hidden = true; patientVerified = false; continueButton.textContent = "Randevularımı kontrol et ve devam et"; patientError.hidden = true; bookingError.hidden = true; resetAppointmentSelection(); });
+    document.querySelector("#newBooking").addEventListener("click", () => { document.querySelector("#bookingForm").reset(); document.querySelector("#bookingForm").hidden = false; document.querySelector("#bookingSuccess").hidden = true; patientInfoStep.hidden = false; appointmentStep.hidden = true; document.querySelector("#existingBookings").hidden = true; continueButton.textContent = "Randevularımı kontrol et ve devam et"; patientError.hidden = true; bookingError.hidden = true; resetAppointmentSelection(); });
 
     const loginForm = document.querySelector("#loginForm"); const loginButton = document.querySelector("#loginButton"); const loginError = document.querySelector("#loginError");
     document.querySelector("#openStaffLogin").addEventListener("click", () => { if (state.token && ["DOKTOR","MUDUR"].includes(String(state.user?.rol).toUpperCase())) showDashboard(); else setView("login"); });
