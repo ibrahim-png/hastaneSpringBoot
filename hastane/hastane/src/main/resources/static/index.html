@@ -23,7 +23,7 @@
         .patient-hero h1 { margin: 0 0 12px; max-width: 700px; font-size: clamp(2rem, 5vw, 3.6rem); line-height: 1.08; letter-spacing: -.05em; }
         .patient-hero p:last-child { max-width: 650px; margin: 0; color: #c5e7e3; font-size: 1.03rem; line-height: 1.65; }
         .booking-shell { width: min(1180px, calc(100% - 32px)); margin: -68px auto 60px; }
-        .booking-form { display: grid; grid-template-columns: .9fr 1.1fr; gap: 20px; align-items: start; }
+        .booking-form { width: min(720px, 100%); margin: 0 auto; }
         .card { border: 1px solid #dfe8ed; border-radius: 18px; background: #fff; box-shadow: 0 16px 46px rgba(36,62,76,.09); }
         .card-head { padding: 23px 24px 18px; border-bottom: 1px solid #edf1f4; }
         .card-head h2 { margin: 3px 0 5px; font-size: 1.35rem; letter-spacing: -.025em; }
@@ -56,6 +56,20 @@
         .message { margin: 15px 0 0; padding: 12px 14px; border-radius: 10px; font-size: .87rem; line-height: 1.5; }
         .message.error { color: #992f2f; background: #fff0f0; }
         .message.success { color: #08665d; background: #e9f8f5; }
+        .form-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+        .form-actions .primary { flex: 1; }
+        .form-actions .outline-button { min-height: 49px; }
+        .existing-bookings { margin-top: 21px; padding-top: 20px; border-top: 1px solid #e7edf1; }
+        .existing-bookings h3 { margin: 0 0 5px; font-size: 1rem; }
+        .existing-bookings > p { margin: 0 0 13px; color: #758295; font-size: .82rem; line-height: 1.5; }
+        .existing-booking-list { display: grid; gap: 9px; }
+        .existing-booking { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding: 12px 13px; border: 1px solid #dfe8ed; border-radius: 11px; background: #f8fbfc; }
+        .existing-booking strong, .existing-booking small { display: block; }
+        .existing-booking strong { margin-bottom: 3px; color: #26384a; font-size: .87rem; }
+        .existing-booking small { color: #788697; font-size: .77rem; }
+        .cancel-button { min-height: 37px; padding: 0 12px; border: 1px solid #e5b5b5; border-radius: 9px; color: #a33232; background: #fff7f7; font-size: .78rem; font-weight: 800; }
+        .cancel-button:hover { background: #ffeded; }
+        .cancel-button:disabled { cursor: wait; opacity: .55; }
         .success-card { max-width: 650px; margin: 0 auto; padding: 40px; text-align: center; }
         .success-icon { display: grid; place-items: center; width: 68px; height: 68px; margin: 0 auto 18px; border-radius: 22px; color: #fff; background: #0b9185; font-size: 2rem; }
         .success-card h2 { margin: 0 0 9px; font-size: 1.8rem; }
@@ -106,7 +120,7 @@
         .empty { min-height: 290px; display: grid; place-items: center; color: #7d8a99; text-align: center; }
         .spinner { width: 28px; height: 28px; margin: 0 auto 10px; border: 3px solid #dce6e7; border-top-color: #087f75; border-radius: 50%; animation: spin .7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 880px) { .booking-form, .planner { grid-template-columns: 1fr; } }
+        @media (max-width: 880px) { .planner { grid-template-columns: 1fr; } }
         @media (max-width: 560px) { .topbar { padding: 11px 14px; } .brand span:last-child { display: none; } .patient-hero { padding-top: 34px; } .field-grid { grid-template-columns: 1fr; } .field-grid .field { margin-bottom: 15px; } .slots { grid-template-columns: repeat(3,1fr); } .card-body, .card-head { padding-left: 18px; padding-right: 18px; } .user-copy { display: none; } .appointment { grid-template-columns: 55px 1fr; } .status { grid-column: 2; justify-self: start; } }
     </style>
 </head>
@@ -125,7 +139,7 @@
     </div>
     <main class="booking-shell">
         <form class="booking-form" id="bookingForm">
-            <section class="card">
+            <section class="card" id="patientInfoStep">
                 <div class="card-head"><p class="eyebrow">1. Adım</p><h2>Hasta bilgileri</h2><p>Randevunun oluşturulacağı kişinin bilgileri</p></div>
                 <div class="card-body">
                     <div class="field-grid">
@@ -134,9 +148,16 @@
                     </div>
                     <div class="field" style="margin-top:17px"><label for="patientTckn">T.C. Kimlik Numarası</label><input id="patientTckn" inputmode="numeric" minlength="11" maxlength="11" pattern="[0-9]{11}" placeholder="11 haneli TCKN" required><p class="field-help">T.C. kimlik numaranız yalnızca randevu kaydı için kullanılır.</p></div>
                     <div class="field"><label for="patientPhone">Telefon numarası</label><input id="patientPhone" type="tel" maxlength="20" autocomplete="tel" placeholder="05XX XXX XX XX" required></div>
+                    <div class="existing-bookings" id="existingBookings" hidden>
+                        <h3>Mevcut randevularınız</h3>
+                        <p>TCKN’nize bağlı aktif randevuları buradan iptal edebilirsiniz.</p>
+                        <div class="existing-booking-list" id="existingBookingList"></div>
+                    </div>
+                    <button class="primary" id="continueButton" type="button">Randevularımı kontrol et ve devam et</button>
+                    <p class="message error" id="patientError" role="alert" hidden></p>
                 </div>
             </section>
-            <section class="card">
+            <section class="card" id="appointmentStep" hidden>
                 <div class="card-head"><p class="eyebrow">2. Adım</p><h2>Randevu seçimi</h2><p>Branş, doktor, tarih ve uygun saati seçin</p></div>
                 <div class="card-body">
                     <div class="steps"><span class="step active"></span><span class="step" id="doctorStep"></span><span class="step" id="timeStep"></span></div>
@@ -145,7 +166,7 @@
                     <div class="field"><label for="appointmentDate">Randevu tarihi</label><input id="appointmentDate" type="date" disabled required></div>
                     <div class="slots-title"><strong>Randevu saati</strong><div class="legend"><span>Müsait</span><span>Dolu</span></div></div>
                     <div class="slots" id="slots"><div class="slots-placeholder">Doktor ve tarih seçtikten sonra saatler burada görünecek.</div></div>
-                    <button class="primary" id="bookButton" type="submit" disabled>Randevuyu oluştur</button>
+                    <div class="form-actions"><button class="outline-button" id="backToPatientInfo" type="button">← Geri</button><button class="primary" id="bookButton" type="submit" disabled>Randevuyu oluştur</button></div>
                     <p class="message error" id="bookingError" role="alert" hidden></p>
                 </div>
             </section>
@@ -184,7 +205,7 @@
 </section>
 
 <script>
-    const API_BASE_URL = "https://hastanespringboot.onrender.com";
+    const API_BASE_URL = window.location.origin;
     const TOKEN_KEY = "hastanePersonelToken";
     const USER_KEY = "hastanePersonel";
     const today = new Date();
@@ -206,7 +227,135 @@
     const slots = document.querySelector("#slots");
     const bookButton = document.querySelector("#bookButton");
     const bookingError = document.querySelector("#bookingError");
+    const patientError = document.querySelector("#patientError");
+    const patientInfoStep = document.querySelector("#patientInfoStep");
+    const appointmentStep = document.querySelector("#appointmentStep");
+    const continueButton = document.querySelector("#continueButton");
+    let patientVerified = false;
     appointmentDate.min = inputDate(today);
+
+    function patientPayload() {
+        return {
+            ad: document.querySelector("#patientName").value.trim(),
+            soyad: document.querySelector("#patientSurname").value.trim(),
+            tckn: document.querySelector("#patientTckn").value.trim(),
+            telefon: document.querySelector("#patientPhone").value.trim()
+        };
+    }
+
+    function formatAppointmentDate(value) {
+        const digits = String(value ?? "");
+        return digits.length === 8
+            ? `${digits.slice(6,8)}.${digits.slice(4,6)}.${digits.slice(0,4)}`
+            : digits;
+    }
+
+    continueButton.addEventListener("click", async () => {
+        patientError.hidden = true;
+        const patientFields = patientInfoStep.querySelectorAll("input");
+        if (![...patientFields].every(field => field.reportValidity())) return;
+        if (patientVerified) {
+            await openAppointmentStep();
+            return;
+        }
+        continueButton.disabled = true;
+        continueButton.textContent = "Bilgiler kontrol ediliyor…";
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/public/randevular/sorgula`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify(patientPayload())
+            });
+            const data = await readResponse(response);
+            if (!response.ok) throw new Error(errorMessage(data,"Hasta bilgileri kontrol edilemedi."));
+            const bookings = Array.isArray(data) ? data : [];
+            renderExistingBookings(bookings);
+            patientVerified = true;
+            if (bookings.length) {
+                continueButton.textContent = "Yeni randevu için branş seçimine devam et";
+                document.querySelector("#existingBookings").scrollIntoView({ behavior: "smooth", block: "center" });
+            } else {
+                await openAppointmentStep();
+            }
+        } catch (error) {
+            patientError.textContent = error.message;
+            patientError.hidden = false;
+        } finally {
+            continueButton.disabled = false;
+            if (!patientVerified) continueButton.textContent = "Randevularımı kontrol et ve devam et";
+        }
+    });
+
+    async function openAppointmentStep() {
+        continueButton.textContent = "Branş seçimine devam et";
+        patientInfoStep.hidden = true;
+        appointmentStep.hidden = false;
+        await loadBranches();
+        appointmentStep.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    patientInfoStep.querySelectorAll("input").forEach(input => input.addEventListener("input", () => {
+        if (!patientVerified) return;
+        patientVerified = false;
+        document.querySelector("#existingBookings").hidden = true;
+        continueButton.textContent = "Randevularımı kontrol et ve devam et";
+    }));
+
+    function renderExistingBookings(data) {
+        const container = document.querySelector("#existingBookings");
+        const list = document.querySelector("#existingBookingList");
+        list.replaceChildren();
+        container.hidden = !data.length;
+        data.forEach(booking => {
+            const item = document.createElement("article");
+            item.className = "existing-booking";
+            const info = document.createElement("div");
+            const doctor = document.createElement("strong");
+            const detail = document.createElement("small");
+            doctor.textContent = booking.doktor;
+            detail.textContent = `${formatAppointmentDate(booking.randevuTarihi)} · ${formatTime(booking.randevuSaati)}`;
+            info.append(doctor, detail);
+            const cancel = document.createElement("button");
+            cancel.type = "button";
+            cancel.className = "cancel-button";
+            cancel.textContent = "İptal et";
+            cancel.addEventListener("click", () => cancelBooking(booking.randevuOid, cancel, item));
+            item.append(info, cancel);
+            list.appendChild(item);
+        });
+    }
+
+    async function cancelBooking(bookingOid, button, item) {
+        if (!window.confirm("Bu randevuyu iptal etmek istediğinize emin misiniz?")) return;
+        patientError.hidden = true;
+        button.disabled = true;
+        button.textContent = "İptal ediliyor…";
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/public/randevular/${encodeURIComponent(bookingOid)}/iptal`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify(patientPayload())
+            });
+            const data = await readResponse(response);
+            if (!response.ok) throw new Error(errorMessage(data,"Randevu iptal edilemedi."));
+            item.remove();
+            if (!document.querySelector("#existingBookingList").children.length) {
+                document.querySelector("#existingBookings").hidden = true;
+            }
+        } catch (error) {
+            patientError.textContent = error.message;
+            patientError.hidden = false;
+            button.disabled = false;
+            button.textContent = "İptal et";
+        }
+    }
+
+    document.querySelector("#backToPatientInfo").addEventListener("click", () => {
+        appointmentStep.hidden = true;
+        patientInfoStep.hidden = false;
+        bookingError.hidden = true;
+        patientInfoStep.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
 
     async function loadBranches() {
         try {
@@ -258,10 +407,11 @@
 
     document.querySelector("#bookingForm").addEventListener("submit", async event => {
         event.preventDefault(); bookingError.hidden = true;
+        if (appointmentStep.hidden) { continueButton.click(); return; }
         if (!selectedSlot) { showBookingError("Lütfen müsait bir randevu saati seçin."); return; }
         bookButton.disabled = true; bookButton.textContent = "Randevu oluşturuluyor…";
         try {
-            const response = await fetch(`${API_BASE_URL}/api/public/randevular`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ ad: document.querySelector("#patientName").value.trim(), soyad: document.querySelector("#patientSurname").value.trim(), tckn: document.querySelector("#patientTckn").value.trim(), telefon: document.querySelector("#patientPhone").value.trim(), doktorOid: doctorSelect.value, randevuTarihi: Number(appointmentDate.value.replaceAll("-","")), randevuSaati: selectedSlot }) });
+            const response = await fetch(`${API_BASE_URL}/api/public/randevular`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ ...patientPayload(), doktorOid: doctorSelect.value, randevuTarihi: Number(appointmentDate.value.replaceAll("-","")), randevuSaati: selectedSlot }) });
             const data = await readResponse(response);
             if (!response.ok) throw new Error(errorMessage(data,"Randevu oluşturulamadı."));
             document.querySelector("#bookingForm").hidden = true; document.querySelector("#bookingSuccess").hidden = false;
@@ -271,7 +421,7 @@
     });
 
     function showBookingError(message) { bookingError.textContent = message; bookingError.hidden = false; }
-    document.querySelector("#newBooking").addEventListener("click", () => { document.querySelector("#bookingForm").reset(); document.querySelector("#bookingForm").hidden = false; document.querySelector("#bookingSuccess").hidden = true; resetAppointmentSelection(); loadBranches(); });
+    document.querySelector("#newBooking").addEventListener("click", () => { document.querySelector("#bookingForm").reset(); document.querySelector("#bookingForm").hidden = false; document.querySelector("#bookingSuccess").hidden = true; patientInfoStep.hidden = false; appointmentStep.hidden = true; document.querySelector("#existingBookings").hidden = true; patientVerified = false; continueButton.textContent = "Randevularımı kontrol et ve devam et"; patientError.hidden = true; bookingError.hidden = true; resetAppointmentSelection(); });
 
     const loginForm = document.querySelector("#loginForm"); const loginButton = document.querySelector("#loginButton"); const loginError = document.querySelector("#loginError");
     document.querySelector("#openStaffLogin").addEventListener("click", () => { if (state.token && ["DOKTOR","MUDUR"].includes(String(state.user?.rol).toUpperCase())) showDashboard(); else setView("login"); });
@@ -300,7 +450,7 @@
     document.querySelector("#previousMonth").addEventListener("click",()=>changeMonth(-1)); document.querySelector("#nextMonth").addEventListener("click",()=>changeMonth(1));
     document.querySelector("#todayButton").addEventListener("click",()=>{state.selectedDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());state.visibleMonth=new Date(today.getFullYear(),today.getMonth(),1);renderCalendar();loadAppointments();});
     document.querySelector("#patientPageButton").addEventListener("click",()=>setView("patient")); document.querySelector("#logoutButton").addEventListener("click",()=>logout());
-    setView("patient"); loadBranches();
+    setView("patient");
 </script>
 </body>
 </html>

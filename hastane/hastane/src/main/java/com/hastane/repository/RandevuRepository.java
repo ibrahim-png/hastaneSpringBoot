@@ -27,4 +27,8 @@ public interface RandevuRepository extends JpaRepository<Randevu, UUID> {
             UUID doktorOid,
             Integer randevuTarihi,
             String durum);
+
+    List<Randevu> findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
+            UUID hastaOid,
+            String durum);
 }

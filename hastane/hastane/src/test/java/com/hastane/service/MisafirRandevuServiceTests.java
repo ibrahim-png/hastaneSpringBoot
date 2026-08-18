@@ -25,10 +25,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.hastane.dto.MisafirRandevuRequest;
 import com.hastane.dto.MisafirRandevuResponse;
 import com.hastane.dto.MusaitSaatResponse;
+import com.hastane.dto.HastaBilgileriRequest;
+import com.hastane.dto.MevcutRandevuResponse;
 import com.hastane.entity.Doktor;
 import com.hastane.entity.Hasta;
 import com.hastane.entity.Randevu;
 import com.hastane.exception.RandevuCakismaException;
+import com.hastane.exception.GecersizRandevuBilgisiException;
 import com.hastane.repository.BransRepository;
 import com.hastane.repository.DoktorRepository;
 import com.hastane.repository.HastaRepository;
@@ -141,5 +144,79 @@ class MisafirRandevuServiceTests {
 
         verify(hastaRepository, never()).save(any(Hasta.class));
         verify(randevuRepository, never()).save(any(Randevu.class));
+    }
+
+    @Test
+    void dogrulananHastaninGelecekAktifRandevulariniGetirir() {
+        Hasta hasta = hastaOlustur();
+        Randevu randevu = new Randevu();
+        randevu.setOid(UUID.randomUUID());
+        randevu.setHastaOid(hasta.getOid());
+        randevu.setDoktorOid(doktor.getOid());
+        randevu.setRandevuTarihi(gelecekHaftaIci);
+        randevu.setRandevuSaati(90000);
+        randevu.setDurum("AKTIF");
+        when(hastaRepository.findByTckn("12345678901")).thenReturn(Optional.of(hasta));
+        when(randevuRepository
+                .findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
+                        hasta.getOid(), "AKTIF"))
+                .thenReturn(List.of(randevu));
+        when(doktorRepository.findAllById(List.of(doktor.getOid())))
+                .thenReturn(List.of(doktor));
+
+        List<MevcutRandevuResponse> sonuc = service.hastaninAktifRandevulariniGetir(
+                hastaBilgileri());
+
+        assertEquals(1, sonuc.size());
+        assertEquals(randevu.getOid(), sonuc.getFirst().randevuOid());
+        assertEquals("Dr. Ayse Yilmaz", sonuc.getFirst().doktor());
+    }
+
+    @Test
+    void hastaKendiAktifRandevusunuIptalEdebilir() {
+        Hasta hasta = hastaOlustur();
+        Randevu randevu = new Randevu();
+        randevu.setOid(UUID.randomUUID());
+        randevu.setHastaOid(hasta.getOid());
+        randevu.setDurum("AKTIF");
+        randevu.setStatus((short) 1);
+        when(hastaRepository.findByTckn("12345678901")).thenReturn(Optional.of(hasta));
+        when(randevuRepository.findById(randevu.getOid())).thenReturn(Optional.of(randevu));
+
+        service.randevuIptalEt(randevu.getOid(), hastaBilgileri());
+
+        assertEquals("IPTAL", randevu.getDurum());
+        assertEquals((short) 0, randevu.getStatus());
+        verify(randevuRepository).save(randevu);
+    }
+
+    @Test
+    void hastaBilgileriEslesmezseRandevulariGostermez() {
+        Hasta hasta = hastaOlustur();
+        when(hastaRepository.findByTckn("12345678901")).thenReturn(Optional.of(hasta));
+
+        assertThrows(GecersizRandevuBilgisiException.class,
+                () -> service.hastaninAktifRandevulariniGetir(
+                        new HastaBilgileriRequest(
+                                "Baska", "Kisi", "12345678901", "05551234567")));
+
+        verify(randevuRepository, never())
+                .findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
+                        any(), any());
+    }
+
+    private Hasta hastaOlustur() {
+        Hasta hasta = new Hasta();
+        hasta.setOid(UUID.randomUUID());
+        hasta.setAd("Ali");
+        hasta.setSoyad("Kaya");
+        hasta.setTckn("12345678901");
+        hasta.setTelefon("05551234567");
+        return hasta;
+    }
+
+    private HastaBilgileriRequest hastaBilgileri() {
+        return new HastaBilgileriRequest(
+                "Ali", "Kaya", "12345678901", "05551234567");
     }
 }

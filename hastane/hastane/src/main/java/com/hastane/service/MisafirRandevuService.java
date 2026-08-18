@@ -8,6 +8,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -18,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.hastane.dto.BransResponse;
 import com.hastane.dto.DoktorSecimResponse;
+import com.hastane.dto.HastaBilgileriRequest;
+import com.hastane.dto.MevcutRandevuResponse;
 import com.hastane.dto.MisafirRandevuRequest;
 import com.hastane.dto.MisafirRandevuResponse;
 import com.hastane.dto.MusaitSaatResponse;
@@ -91,6 +94,84 @@ public class MisafirRandevuService {
         Doktor doktor = aktifDoktoruGetir(doktorOid);
         LocalDate tarih = randevuTarihiniDogrula(randevuTarihi);
         return saatleriHesapla(doktor, tarih);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MevcutRandevuResponse> hastaninAktifRandevulariniGetir(
+            HastaBilgileriRequest request) {
+        hastaBilgileriniDogrula(
+                request == null ? null : request.ad(),
+                request == null ? null : request.soyad(),
+                request == null ? null : request.tckn(),
+                request == null ? null : request.telefon());
+
+        Hasta hasta = hastaRepository.findByTckn(request.tckn().strip())
+                .map(mevcut -> mevcutHastayiDogrula(
+                        mevcut,
+                        request.ad(),
+                        request.soyad(),
+                        request.telefon()))
+                .orElse(null);
+        if (hasta == null) {
+            return List.of();
+        }
+
+        LocalDateTime simdi = LocalDateTime.now(ISTANBUL);
+        int bugun = tarihSayisi(simdi.toLocalDate());
+        int suAn = saatSayisi(simdi.toLocalTime());
+        List<Randevu> randevular = randevuRepository
+                .findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
+                        hasta.getOid(),
+                        "AKTIF")
+                .stream()
+                .filter(randevu -> randevu.getRandevuTarihi() > bugun
+                        || (randevu.getRandevuTarihi() == bugun
+                                && randevu.getRandevuSaati() > suAn))
+                .toList();
+
+        Map<UUID, Doktor> doktorlar = doktorRepository.findAllById(
+                        randevular.stream().map(Randevu::getDoktorOid).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Doktor::getOid, doktor -> doktor));
+
+        return randevular.stream()
+                .map(randevu -> mevcutRandevuResponseOlustur(
+                        randevu,
+                        doktorlar.get(randevu.getDoktorOid())))
+                .toList();
+    }
+
+    @Transactional
+    public void randevuIptalEt(
+            UUID randevuOid,
+            HastaBilgileriRequest request) {
+        if (randevuOid == null) {
+            throw new GecersizRandevuBilgisiException("Randevu OID zorunludur.");
+        }
+        hastaBilgileriniDogrula(
+                request == null ? null : request.ad(),
+                request == null ? null : request.soyad(),
+                request == null ? null : request.tckn(),
+                request == null ? null : request.telefon());
+
+        Hasta hasta = hastaRepository.findByTckn(request.tckn().strip())
+                .map(mevcut -> mevcutHastayiDogrula(
+                        mevcut,
+                        request.ad(),
+                        request.soyad(),
+                        request.telefon()))
+                .orElseThrow(() -> new GecersizRandevuBilgisiException(
+                        "Hasta bilgileri dogrulanamadi."));
+
+        Randevu randevu = randevuRepository.findById(randevuOid)
+                .filter(mevcut -> mevcut.getHastaOid().equals(hasta.getOid()))
+                .filter(mevcut -> "AKTIF".equals(mevcut.getDurum()))
+                .orElseThrow(() -> new GecersizRandevuBilgisiException(
+                        "Iptal edilebilecek aktif randevu bulunamadi."));
+
+        randevu.setDurum("IPTAL");
+        randevu.setStatus((short) 0);
+        randevuRepository.save(randevu);
     }
 
     @Transactional
@@ -193,8 +274,22 @@ public class MisafirRandevuService {
     private Hasta mevcutHastayiDogrula(
             Hasta hasta,
             MisafirRandevuRequest request) {
-        if (!telefonuNormalizeEt(hasta.getTelefon())
-                .equals(telefonuNormalizeEt(request.telefon()))) {
+        return mevcutHastayiDogrula(
+                hasta,
+                request.ad(),
+                request.soyad(),
+                request.telefon());
+    }
+
+    private Hasta mevcutHastayiDogrula(
+            Hasta hasta,
+            String ad,
+            String soyad,
+            String telefon) {
+        if (!hasta.getAd().strip().equalsIgnoreCase(ad.strip())
+                || !hasta.getSoyad().strip().equalsIgnoreCase(soyad.strip())
+                || !telefonuNormalizeEt(hasta.getTelefon())
+                        .equals(telefonuNormalizeEt(telefon))) {
             throw new GecersizRandevuBilgisiException(
                     "Hasta bilgileri dogrulanamadi.");
         }
@@ -218,20 +313,50 @@ public class MisafirRandevuService {
         if (request == null) {
             throw new GecersizRandevuBilgisiException("Randevu bilgileri zorunludur.");
         }
-        if (request.ad() == null || request.ad().isBlank()
-                || request.soyad() == null || request.soyad().isBlank()) {
-            throw new GecersizRandevuBilgisiException("Ad ve soyad zorunludur.");
-        }
-        if (request.tckn() == null || !request.tckn().matches("[0-9]{11}")) {
-            throw new GecersizRandevuBilgisiException("TCKN 11 rakamdan olusmalidir.");
-        }
-        if (request.telefon() == null
-                || !request.telefon().replaceAll("[^0-9]", "").matches("[0-9]{10,15}")) {
-            throw new GecersizRandevuBilgisiException("Gecerli bir telefon numarasi girilmelidir.");
-        }
+        hastaBilgileriniDogrula(
+                request.ad(),
+                request.soyad(),
+                request.tckn(),
+                request.telefon());
         if (request.randevuSaati() == null) {
             throw new GecersizRandevuBilgisiException("Randevu saati zorunludur.");
         }
+    }
+
+    private void hastaBilgileriniDogrula(
+            String ad,
+            String soyad,
+            String tckn,
+            String telefon) {
+        if (ad == null || ad.isBlank() || soyad == null || soyad.isBlank()) {
+            throw new GecersizRandevuBilgisiException("Ad ve soyad zorunludur.");
+        }
+        if (tckn == null || !tckn.matches("[0-9]{11}")) {
+            throw new GecersizRandevuBilgisiException("TCKN 11 rakamdan olusmalidir.");
+        }
+        if (telefon == null
+                || !telefon.replaceAll("[^0-9]", "").matches("[0-9]{10,15}")) {
+            throw new GecersizRandevuBilgisiException("Gecerli bir telefon numarasi girilmelidir.");
+        }
+    }
+
+    private MevcutRandevuResponse mevcutRandevuResponseOlustur(
+            Randevu randevu,
+            Doktor doktor) {
+        String doktorAdi = doktor == null
+                ? "Doktor bilgisi bulunamadi"
+                : java.util.stream.Stream.of(
+                                doktor.getUnvan(),
+                                doktor.getAd(),
+                                doktor.getSoyad())
+                        .filter(deger -> deger != null && !deger.isBlank())
+                        .collect(Collectors.joining(" "));
+        return new MevcutRandevuResponse(
+                randevu.getOid(),
+                randevu.getRandevuTarihi(),
+                randevu.getRandevuSaati(),
+                doktorAdi,
+                randevu.getDurum());
     }
 
     private LocalDate randevuTarihiniDogrula(Integer tarih) {

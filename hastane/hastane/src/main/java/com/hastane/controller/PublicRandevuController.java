@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hastane.dto.BransResponse;
 import com.hastane.dto.DoktorSecimResponse;
+import com.hastane.dto.HastaBilgileriRequest;
+import com.hastane.dto.MevcutRandevuResponse;
 import com.hastane.dto.MisafirRandevuRequest;
 import com.hastane.dto.MisafirRandevuResponse;
 import com.hastane.dto.MusaitSaatResponse;
@@ -56,5 +59,19 @@ public class PublicRandevuController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(misafirRandevuService.randevuOlustur(request));
+    }
+
+    @PostMapping("/randevular/sorgula")
+    public List<MevcutRandevuResponse> hastaninAktifRandevulariniGetir(
+            @RequestBody HastaBilgileriRequest request) {
+        return misafirRandevuService.hastaninAktifRandevulariniGetir(request);
+    }
+
+    @PatchMapping("/randevular/{randevuOid}/iptal")
+    public ResponseEntity<Void> randevuIptalEt(
+            @PathVariable UUID randevuOid,
+            @RequestBody HastaBilgileriRequest request) {
+        misafirRandevuService.randevuIptalEt(randevuOid, request);
+        return ResponseEntity.noContent().build();
     }
 }
