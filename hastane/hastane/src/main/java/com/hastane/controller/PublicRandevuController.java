@@ -21,6 +21,8 @@ import com.hastane.dto.MevcutRandevuResponse;
 import com.hastane.dto.MisafirRandevuRequest;
 import com.hastane.dto.MisafirRandevuResponse;
 import com.hastane.dto.MusaitSaatResponse;
+import com.hastane.exception.GecersizRandevuBilgisiException;
+import com.hastane.security.TurnstileService;
 import com.hastane.service.MisafirRandevuService;
 
 @RestController
@@ -28,9 +30,13 @@ import com.hastane.service.MisafirRandevuService;
 public class PublicRandevuController {
 
     private final MisafirRandevuService misafirRandevuService;
+    private final TurnstileService turnstileService;
 
-    public PublicRandevuController(MisafirRandevuService misafirRandevuService) {
+    public PublicRandevuController(
+            MisafirRandevuService misafirRandevuService,
+            TurnstileService turnstileService) {
         this.misafirRandevuService = misafirRandevuService;
+        this.turnstileService = turnstileService;
     }
 
     @GetMapping("/branslar")
@@ -64,6 +70,11 @@ public class PublicRandevuController {
     @PostMapping("/randevular/sorgula")
     public List<MevcutRandevuResponse> hastaninAktifRandevulariniGetir(
             @RequestBody HastaBilgileriRequest request) {
+        if (request == null
+                || !turnstileService.dogrula(request.turnstileToken(), "patient_lookup")) {
+            throw new GecersizRandevuBilgisiException(
+                    "Insan dogrulamasi basarisiz. Lutfen tekrar deneyin.");
+        }
         return misafirRandevuService.hastaninAktifRandevulariniGetir(request);
     }
 

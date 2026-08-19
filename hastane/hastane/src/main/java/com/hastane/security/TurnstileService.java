@@ -49,12 +49,15 @@ public class TurnstileService {
         this.httpClient = httpClient;
     }
 
-    public boolean dogrula(String token) {
+    public boolean dogrula(String token, String beklenenAction) {
         if (!properties.isEnabled()) {
             return true;
         }
 
-        if (token == null || token.isBlank() || token.length() > MAKSIMUM_TOKEN_UZUNLUGU) {
+        if (token == null
+                || token.isBlank()
+                || token.length() > MAKSIMUM_TOKEN_UZUNLUGU
+                || bos(beklenenAction)) {
             return false;
         }
 
@@ -87,7 +90,7 @@ public class TurnstileService {
                     SiteverifyResponse.class);
             boolean dogru = response.success()
                     && properties.getExpectedHostname().equalsIgnoreCase(response.hostname())
-                    && properties.getExpectedAction().equals(response.action());
+                    && beklenenAction.equals(response.action());
             if (!dogru) {
                 LOGGER.warn(
                         "Turnstile dogrulamasi reddedildi. hostname={}, action={}, errors={}",

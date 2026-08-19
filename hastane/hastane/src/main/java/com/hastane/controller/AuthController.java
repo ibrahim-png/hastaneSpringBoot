@@ -50,7 +50,7 @@ public class AuthController {
             throw new KimlikDogrulamaException("E-posta ve sifre zorunludur.");
         }
 
-        if (!turnstileService.dogrula(girisRequest.turnstileToken())) {
+        if (!turnstileService.dogrula(girisRequest.turnstileToken(), "staff_login")) {
             throw new KimlikDogrulamaException(
                     "Insan dogrulamasi basarisiz. Lutfen tekrar deneyin.");
         }

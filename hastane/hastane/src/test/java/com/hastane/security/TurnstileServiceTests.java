@@ -30,7 +30,7 @@ class TurnstileServiceTests {
                 new ObjectMapper(),
                 httpClient);
 
-        assertTrue(service.dogrula(null));
+        assertTrue(service.dogrula(null, "staff_login"));
         verify(httpClient, never()).send(any(), any());
     }
 
@@ -42,7 +42,7 @@ class TurnstileServiceTests {
                 new ObjectMapper(),
                 httpClient);
 
-        assertFalse(service.dogrula("  "));
+        assertFalse(service.dogrula("  ", "staff_login"));
         verify(httpClient, never()).send(any(), any());
     }
 
@@ -63,7 +63,7 @@ class TurnstileServiceTests {
                 new ObjectMapper(),
                 httpClient);
 
-        assertTrue(service.dogrula("gecerli-token"));
+        assertTrue(service.dogrula("gecerli-token", "staff_login"));
     }
 
     @Test
@@ -83,7 +83,27 @@ class TurnstileServiceTests {
                 new ObjectMapper(),
                 httpClient);
 
-        assertFalse(service.dogrula("gecerli-token"));
+        assertFalse(service.dogrula("gecerli-token", "staff_login"));
+    }
+
+    @Test
+    void baskaIslemIcinUretilenTokenReddedilir() throws Exception {
+        HttpClient httpClient = mock(HttpClient.class);
+        HttpResponse<String> response = response(
+                200,
+                """
+                {"success":true,"hostname":"hastanespringboot.onrender.com","action":"staff_login","error-codes":[]}
+                """);
+        when(httpClient.send(
+                any(HttpRequest.class),
+                ArgumentMatchers.<HttpResponse.BodyHandler<String>>any()))
+                .thenReturn(response);
+        TurnstileService service = new TurnstileService(
+                properties(true),
+                new ObjectMapper(),
+                httpClient);
+
+        assertFalse(service.dogrula("gecerli-token", "patient_lookup"));
     }
 
     @Test
@@ -103,7 +123,7 @@ class TurnstileServiceTests {
                 new ObjectMapper(),
                 httpClient);
 
-        assertFalse(service.dogrula("gecersiz-token"));
+        assertFalse(service.dogrula("gecersiz-token", "staff_login"));
     }
 
     private static TurnstileProperties properties(boolean enabled) {
@@ -111,7 +131,6 @@ class TurnstileServiceTests {
         properties.setEnabled(enabled);
         properties.setSecretKey("test-secret");
         properties.setExpectedHostname("hastanespringboot.onrender.com");
-        properties.setExpectedAction("staff_login");
         return properties;
     }
 

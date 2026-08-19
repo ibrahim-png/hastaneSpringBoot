@@ -20,7 +20,7 @@ class AuthControllerTests {
         AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         JwtTokenService jwtTokenService = mock(JwtTokenService.class);
         TurnstileService turnstileService = mock(TurnstileService.class);
-        when(turnstileService.dogrula("gecersiz-token")).thenReturn(false);
+        when(turnstileService.dogrula("gecersiz-token", "staff_login")).thenReturn(false);
         AuthController controller = new AuthController(
                 authenticationManager,
                 jwtTokenService,

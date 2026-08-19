@@ -8,7 +8,6 @@ public class TurnstileProperties {
     private boolean enabled;
     private String secretKey;
     private String expectedHostname;
-    private String expectedAction = "staff_login";
     private String siteverifyUrl =
             "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
@@ -34,14 +33,6 @@ public class TurnstileProperties {
 
     public void setExpectedHostname(String expectedHostname) {
         this.expectedHostname = expectedHostname;
-    }
-
-    public String getExpectedAction() {
-        return expectedAction;
-    }
-
-    public void setExpectedAction(String expectedAction) {
-        this.expectedAction = expectedAction;
     }
 
     public String getSiteverifyUrl() {
