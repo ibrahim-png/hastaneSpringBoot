@@ -150,7 +150,7 @@
                     <div class="field" style="margin-top:17px"><label for="patientTckn">T.C. Kimlik Numarası</label><input id="patientTckn" inputmode="numeric" minlength="11" maxlength="11" pattern="[0-9]{11}" placeholder="11 haneli TCKN" required><p class="field-help">T.C. kimlik numaranız yalnızca randevu kaydı için kullanılır.</p></div>
                     <div class="field"><label for="patientPhone">Telefon numarası</label><input id="patientPhone" type="tel" maxlength="20" autocomplete="tel" placeholder="05XX XXX XX XX" required></div>
                     <div class="turnstile-wrap"><div id="patientLookupTurnstile"></div></div>
-                    <button class="primary" id="continueButton" type="button" disabled>Randevularımı kontrol et ve devam et</button>
+                    <button class="primary" id="continueButton" type="button" disabled>Devam et</button>
                     <p class="message error" id="patientError" role="alert" hidden></p>
                 </div>
             </section>
@@ -316,7 +316,7 @@
             patientError.hidden = false;
         } finally {
             resetPatientLookupTurnstile();
-            continueButton.textContent = "Randevularımı kontrol et ve devam et";
+            continueButton.textContent = "Devam et";
         }
     });
 
@@ -455,7 +455,7 @@
     });
 
     function showBookingError(message) { bookingError.textContent = message; bookingError.hidden = false; }
-    document.querySelector("#newBooking").addEventListener("click", () => { document.querySelector("#bookingForm").reset(); document.querySelector("#bookingForm").hidden = false; document.querySelector("#bookingSuccess").hidden = true; patientInfoStep.hidden = false; appointmentStep.hidden = true; document.querySelector("#existingBookings").hidden = true; continueButton.textContent = "Randevularımı kontrol et ve devam et"; patientError.hidden = true; bookingError.hidden = true; resetPatientLookupTurnstile(); resetAppointmentSelection(); });
+    document.querySelector("#newBooking").addEventListener("click", () => { document.querySelector("#bookingForm").reset(); document.querySelector("#bookingForm").hidden = false; document.querySelector("#bookingSuccess").hidden = true; patientInfoStep.hidden = false; appointmentStep.hidden = true; document.querySelector("#existingBookings").hidden = true; continueButton.textContent = "Devam et"; patientError.hidden = true; bookingError.hidden = true; resetPatientLookupTurnstile(); resetAppointmentSelection(); });
 
     const loginForm = document.querySelector("#loginForm"); const loginButton = document.querySelector("#loginButton"); const loginError = document.querySelector("#loginError");
 
