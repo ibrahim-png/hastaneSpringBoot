@@ -21,6 +21,7 @@ import com.hastane.dto.KullaniciResponse;
 import com.hastane.exception.KimlikDogrulamaException;
 import com.hastane.security.JwtTokenService;
 import com.hastane.security.KullaniciPrincipal;
+import com.hastane.security.TurnstileService;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -28,12 +29,15 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenService jwtTokenService;
+    private final TurnstileService turnstileService;
 
     public AuthController(
             AuthenticationManager authenticationManager,
-            JwtTokenService jwtTokenService) {
+            JwtTokenService jwtTokenService,
+            TurnstileService turnstileService) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenService = jwtTokenService;
+        this.turnstileService = turnstileService;
     }
 
     @PostMapping("/giris")
@@ -44,6 +48,11 @@ public class AuthController {
                 || girisRequest.sifre() == null
                 || girisRequest.sifre().isBlank()) {
             throw new KimlikDogrulamaException("E-posta ve sifre zorunludur.");
+        }
+
+        if (!turnstileService.dogrula(girisRequest.turnstileToken())) {
+            throw new KimlikDogrulamaException(
+                    "Insan dogrulamasi basarisiz. Lutfen tekrar deneyin.");
         }
 
         Authentication authentication;

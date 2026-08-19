@@ -1,4 +1,4 @@
 package com.hastane.dto;
 
-public record GirisRequest(String email, String sifre) {
+public record GirisRequest(String email, String sifre, String turnstileToken) {
 }

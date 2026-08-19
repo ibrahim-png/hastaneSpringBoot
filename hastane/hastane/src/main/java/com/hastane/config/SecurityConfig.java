@@ -41,7 +41,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableMethodSecurity
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, TurnstileProperties.class})
 public class SecurityConfig {
 
     @Bean

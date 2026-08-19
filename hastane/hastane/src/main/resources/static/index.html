@@ -81,6 +81,7 @@
         .login-box h1 { margin: 5px 0 8px; font-size: 2rem; letter-spacing: -.04em; }
         .login-box > p { margin: 0 0 25px; color: #738092; line-height: 1.55; }
         .back-button { margin-bottom: 20px; padding: 0; border: 0; color: #187a72; background: transparent; font-weight: 750; }
+        .turnstile-wrap { min-height: 66px; margin: 2px 0 17px; }
 
         .dashboard { min-height: 100vh; }
         .user-area { display: flex; align-items: center; gap: 13px; }
@@ -185,7 +186,8 @@
         <p class="eyebrow">Personel portalı</p><h1>Doktor / Müdür Girişi</h1><p>Randevu takvimini görüntülemek için personel hesabınızla giriş yapın.</p>
         <div class="field"><label for="email">E-posta adresi</label><input id="email" type="email" autocomplete="username" required></div>
         <div class="field"><label for="password">Şifre</label><input id="password" type="password" autocomplete="current-password" required></div>
-        <button class="primary" id="loginButton" type="submit">Giriş yap</button>
+        <div class="turnstile-wrap"><div id="loginTurnstile"></div></div>
+        <button class="primary" id="loginButton" type="submit" disabled>Giriş yap</button>
         <p class="message error" id="loginError" role="alert" hidden></p>
     </form>
 </section>
@@ -206,11 +208,15 @@
 
 <script>
     const API_BASE_URL = window.location.origin;
+    const TURNSTILE_SITE_KEY = "0x4AAAAAAEVkZPU7LZMVwmY2";
+    const TURNSTILE_ACTION = "staff_login";
     const TOKEN_KEY = "hastanePersonelToken";
     const USER_KEY = "hastanePersonel";
     const today = new Date();
     let selectedSlot = null;
     let appointmentsRequest;
+    let loginTurnstileWidgetId = null;
+    let turnstileToken = "";
     const state = { token: sessionStorage.getItem(TOKEN_KEY), user: storedUser(), selectedDate: new Date(today.getFullYear(),today.getMonth(),today.getDate()), visibleMonth: new Date(today.getFullYear(),today.getMonth(),1) };
 
     function storedUser() { try { return JSON.parse(sessionStorage.getItem(USER_KEY) || "null"); } catch { return null; } }
@@ -404,19 +410,67 @@
     document.querySelector("#newBooking").addEventListener("click", () => { document.querySelector("#bookingForm").reset(); document.querySelector("#bookingForm").hidden = false; document.querySelector("#bookingSuccess").hidden = true; patientInfoStep.hidden = false; appointmentStep.hidden = true; document.querySelector("#existingBookings").hidden = true; continueButton.textContent = "Randevularımı kontrol et ve devam et"; patientError.hidden = true; bookingError.hidden = true; resetAppointmentSelection(); });
 
     const loginForm = document.querySelector("#loginForm"); const loginButton = document.querySelector("#loginButton"); const loginError = document.querySelector("#loginError");
-    document.querySelector("#openStaffLogin").addEventListener("click", () => { if (state.token && ["DOKTOR","MUDUR"].includes(String(state.user?.rol).toUpperCase())) showDashboard(); else setView("login"); });
-    document.querySelector("#backToPatient").addEventListener("click", () => setView("patient"));
+
+    function renderLoginTurnstile() {
+        if (!window.turnstile || loginTurnstileWidgetId !== null) return;
+        loginTurnstileWidgetId = window.turnstile.render("#loginTurnstile", {
+            sitekey: TURNSTILE_SITE_KEY,
+            action: TURNSTILE_ACTION,
+            theme: "light",
+            callback: token => {
+                turnstileToken = token;
+                loginError.hidden = true;
+                loginButton.disabled = false;
+            },
+            "expired-callback": () => resetLoginTurnstile(),
+            "error-callback": () => {
+                turnstileToken = "";
+                loginButton.disabled = true;
+                loginError.textContent = "İnsan doğrulaması yüklenemedi. Lütfen tekrar deneyin.";
+                loginError.hidden = false;
+            }
+        });
+    }
+
+    function resetLoginTurnstile() {
+        turnstileToken = "";
+        loginButton.disabled = true;
+        if (window.turnstile && loginTurnstileWidgetId !== null) {
+            window.turnstile.reset(loginTurnstileWidgetId);
+        }
+    }
+
+    function turnstileLoaded() {
+        if (!document.querySelector("#staffLoginView").hidden) renderLoginTurnstile();
+    }
+
+    document.querySelector("#openStaffLogin").addEventListener("click", () => {
+        if (state.token && ["DOKTOR","MUDUR"].includes(String(state.user?.rol).toUpperCase())) {
+            showDashboard();
+            return;
+        }
+        setView("login");
+        if (loginTurnstileWidgetId === null) renderLoginTurnstile(); else resetLoginTurnstile();
+    });
+    document.querySelector("#backToPatient").addEventListener("click", () => { resetLoginTurnstile(); setView("patient"); });
     loginForm.addEventListener("submit", async event => {
-        event.preventDefault(); loginError.hidden = true; loginButton.disabled = true; loginButton.textContent = "Giriş yapılıyor…";
+        event.preventDefault(); loginError.hidden = true;
+        if (!turnstileToken) {
+            loginError.textContent = "Lütfen insan doğrulamasını tamamlayın.";
+            loginError.hidden = false;
+            return;
+        }
+        const kullanilanTurnstileToken = turnstileToken;
+        loginButton.disabled = true; loginButton.textContent = "Giriş yapılıyor…";
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/giris`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ email: document.querySelector("#email").value.trim(), sifre: document.querySelector("#password").value }) });
+            const response = await fetch(`${API_BASE_URL}/api/auth/giris`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ email: document.querySelector("#email").value.trim(), sifre: document.querySelector("#password").value, turnstileToken: kullanilanTurnstileToken }) });
             const data = await readResponse(response);
             if (!response.ok) throw new Error(errorMessage(data,"E-posta veya şifre hatalı."));
             const role = String(data.rol).toUpperCase(); if (!["DOKTOR","MUDUR"].includes(role)) throw new Error("Bu giriş yalnızca doktor ve müdür hesaplarına açıktır.");
             state.token = data.accessToken; state.user = { email: data.email, rol: role, kullaniciOid: data.kullaniciOid };
             sessionStorage.setItem(TOKEN_KEY,state.token); sessionStorage.setItem(USER_KEY,JSON.stringify(state.user)); loginForm.reset(); showDashboard();
         } catch (error) { loginError.textContent = error.message; loginError.hidden = false; }
-        finally { loginButton.disabled = false; loginButton.textContent = "Giriş yap"; }
+        finally { resetLoginTurnstile(); loginButton.textContent = "Giriş yap"; }
     });
 
     const calendarGrid = document.querySelector("#calendarGrid");
@@ -432,5 +486,6 @@
     document.querySelector("#patientPageButton").addEventListener("click",()=>setView("patient")); document.querySelector("#logoutButton").addEventListener("click",()=>logout());
     setView("patient");
 </script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=turnstileLoaded&amp;render=explicit" async defer></script>
 </body>
 </html>
