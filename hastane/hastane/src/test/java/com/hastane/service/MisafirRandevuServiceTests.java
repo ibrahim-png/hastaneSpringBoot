@@ -27,6 +27,7 @@ import com.hastane.dto.MisafirRandevuResponse;
 import com.hastane.dto.MusaitSaatResponse;
 import com.hastane.dto.HastaBilgileriRequest;
 import com.hastane.dto.MevcutRandevuResponse;
+import com.hastane.entity.Brans;
 import com.hastane.entity.Doktor;
 import com.hastane.entity.Hasta;
 import com.hastane.entity.Randevu;
@@ -59,6 +60,7 @@ class MisafirRandevuServiceTests {
         doktor = new Doktor();
         doktor.setOid(UUID.randomUUID());
         doktor.setHastaneOid(UUID.randomUUID());
+        doktor.setBransOid(UUID.randomUUID());
         doktor.setAd("Ayse");
         doktor.setSoyad("Yilmaz");
         doktor.setUnvan("Dr.");
@@ -103,7 +105,8 @@ class MisafirRandevuServiceTests {
                 .findByDoktorOidAndRandevuTarihiAndDurumOrderByRandevuSaatiAsc(
                         doktor.getOid(), gelecekHaftaIci, "AKTIF"))
                 .thenReturn(List.of());
-        when(hastaRepository.findByTckn("12345678901")).thenReturn(Optional.empty());
+        when(hastaRepository.kilitleyerekTcknIleBul("12345678901"))
+                .thenReturn(Optional.empty());
         when(hastaRepository.save(any(Hasta.class))).thenAnswer(invocation -> {
             Hasta hasta = invocation.getArgument(0);
             hasta.setOid(UUID.randomUUID());
@@ -114,6 +117,9 @@ class MisafirRandevuServiceTests {
             randevu.setOid(UUID.randomUUID());
             return randevu;
         });
+        Brans brans = new Brans();
+        brans.setAd("Kardiyoloji");
+        when(bransRepository.findById(doktor.getBransOid())).thenReturn(Optional.of(brans));
 
         MisafirRandevuResponse sonuc = service.randevuOlustur(new MisafirRandevuRequest(
                 "Ali", "Kaya", "12345678901", "05551234567",
@@ -121,6 +127,7 @@ class MisafirRandevuServiceTests {
 
         assertEquals(gelecekHaftaIci, sonuc.randevuTarihi());
         assertEquals(90000, sonuc.randevuSaati());
+        assertEquals("Kardiyoloji", sonuc.brans());
         verify(hastaRepository).save(any(Hasta.class));
         verify(randevuRepository).save(any(Randevu.class));
     }
@@ -217,7 +224,12 @@ class MisafirRandevuServiceTests {
                 .findByDoktorOidAndRandevuTarihiAndDurumOrderByRandevuSaatiAsc(
                         doktor.getOid(), gelecekHaftaIci, "AKTIF"))
                 .thenReturn(List.of());
-        when(hastaRepository.findByTckn("12345678901")).thenReturn(Optional.of(hasta));
+        when(hastaRepository.kilitleyerekTcknIleBul("12345678901"))
+                .thenReturn(Optional.of(hasta));
+        when(randevuRepository
+                .findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
+                        hasta.getOid(), "AKTIF"))
+                .thenReturn(List.of());
         when(randevuRepository.save(any(Randevu.class))).thenAnswer(invocation -> {
             Randevu randevu = invocation.getArgument(0);
             randevu.setOid(UUID.randomUUID());
@@ -231,6 +243,84 @@ class MisafirRandevuServiceTests {
         assertEquals(gelecekHaftaIci, sonuc.randevuTarihi());
         verify(hastaRepository, never()).save(any(Hasta.class));
         verify(randevuRepository).save(any(Randevu.class));
+    }
+
+    @Test
+    void ayniTcknAyniBranstaAktifRandevuAlamaz() {
+        Hasta hasta = hastaOlustur();
+        Doktor mevcutDoktor = new Doktor();
+        mevcutDoktor.setOid(UUID.randomUUID());
+        mevcutDoktor.setBransOid(doktor.getBransOid());
+        Randevu mevcutRandevu = gelecekAktifRandevu(hasta, mevcutDoktor);
+
+        when(doktorRepository.kilitleyerekBul(doktor.getOid(), (short) 1))
+                .thenReturn(Optional.of(doktor));
+        when(hastaRepository.kilitleyerekTcknIleBul("12345678901"))
+                .thenReturn(Optional.of(hasta));
+        when(randevuRepository
+                .findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
+                        hasta.getOid(), "AKTIF"))
+                .thenReturn(List.of(mevcutRandevu));
+        when(doktorRepository.findAllById(any())).thenReturn(List.of(mevcutDoktor));
+
+        RandevuCakismaException hata = assertThrows(
+                RandevuCakismaException.class,
+                () -> service.randevuOlustur(randevuRequesti()));
+
+        assertEquals(
+                "Bu TCKN ile aynı branşta aktif bir randevu zaten bulunmaktadır.",
+                hata.getMessage());
+        verify(randevuRepository, never()).save(any(Randevu.class));
+    }
+
+    @Test
+    void ayniTcknAyniHastanedeFarkliBranstanRandevuAlabilir() {
+        Hasta hasta = hastaOlustur();
+        Doktor mevcutDoktor = new Doktor();
+        mevcutDoktor.setOid(UUID.randomUUID());
+        mevcutDoktor.setBransOid(UUID.randomUUID());
+        Randevu mevcutRandevu = gelecekAktifRandevu(hasta, mevcutDoktor);
+
+        when(doktorRepository.kilitleyerekBul(doktor.getOid(), (short) 1))
+                .thenReturn(Optional.of(doktor));
+        when(hastaRepository.kilitleyerekTcknIleBul("12345678901"))
+                .thenReturn(Optional.of(hasta));
+        when(randevuRepository
+                .findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
+                        hasta.getOid(), "AKTIF"))
+                .thenReturn(List.of(mevcutRandevu));
+        when(doktorRepository.findAllById(any())).thenReturn(List.of(mevcutDoktor));
+        when(randevuRepository
+                .findByDoktorOidAndRandevuTarihiAndDurumOrderByRandevuSaatiAsc(
+                        doktor.getOid(), gelecekHaftaIci, "AKTIF"))
+                .thenReturn(List.of());
+        when(randevuRepository.save(any(Randevu.class))).thenAnswer(invocation -> {
+            Randevu randevu = invocation.getArgument(0);
+            randevu.setOid(UUID.randomUUID());
+            return randevu;
+        });
+
+        MisafirRandevuResponse sonuc = service.randevuOlustur(randevuRequesti());
+
+        assertEquals(gelecekHaftaIci, sonuc.randevuTarihi());
+        verify(randevuRepository).save(any(Randevu.class));
+    }
+
+    private Randevu gelecekAktifRandevu(Hasta hasta, Doktor mevcutDoktor) {
+        Randevu randevu = new Randevu();
+        randevu.setHastaOid(hasta.getOid());
+        randevu.setDoktorOid(mevcutDoktor.getOid());
+        randevu.setHastaneOid(doktor.getHastaneOid());
+        randevu.setRandevuTarihi(gelecekHaftaIci);
+        randevu.setRandevuSaati(100000);
+        randevu.setDurum("AKTIF");
+        return randevu;
+    }
+
+    private MisafirRandevuRequest randevuRequesti() {
+        return new MisafirRandevuRequest(
+                "Ali", "Kaya", "12345678901", "05551234567",
+                doktor.getOid(), gelecekHaftaIci, 90000);
     }
 
     private Hasta hastaOlustur() {

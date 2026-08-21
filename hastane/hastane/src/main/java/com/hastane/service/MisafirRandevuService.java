@@ -10,6 +10,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -170,6 +171,10 @@ public class MisafirRandevuService {
         Doktor doktor = aktifDoktoruKilitleyerekGetir(request.doktorOid());
         LocalDate tarih = randevuTarihiniDogrula(request.randevuTarihi());
 
+        Hasta hasta = hastaRepository.kilitleyerekTcknIleBul(request.tckn().strip())
+                .orElse(null);
+        hastaninRandevuKuraliniDogrula(hasta, doktor);
+
         boolean saatMusait = saatleriHesapla(doktor, tarih).stream()
                 .anyMatch(saat -> saat.saat().equals(request.randevuSaati()) && saat.musait());
         if (!saatMusait) {
@@ -177,8 +182,9 @@ public class MisafirRandevuService {
                     "Secilen randevu saati artik musait degildir.");
         }
 
-        Hasta hasta = hastaRepository.findByTckn(request.tckn().strip())
-                .orElseGet(() -> hastaRepository.save(yeniHasta(request)));
+        if (hasta == null) {
+            hasta = hastaRepository.save(yeniHasta(request));
+        }
 
         LocalDateTime now = LocalDateTime.now(ISTANBUL);
         Randevu randevu = new Randevu();
@@ -199,12 +205,58 @@ public class MisafirRandevuService {
                         doktor.getSoyad())
                 .filter(deger -> deger != null && !deger.isBlank())
                 .collect(Collectors.joining(" "));
+        String bransAdi = doktor.getBransOid() == null
+                ? "Branş bilgisi bulunamadı"
+                : bransRepository.findById(doktor.getBransOid())
+                        .map(brans -> brans.getAd())
+                        .orElse("Branş bilgisi bulunamadı");
         return new MisafirRandevuResponse(
                 kaydedilen.getOid(),
                 kaydedilen.getRandevuTarihi(),
                 kaydedilen.getRandevuSaati(),
                 doktorAdi,
+                bransAdi,
                 kaydedilen.getDurum());
+    }
+
+    private void hastaninRandevuKuraliniDogrula(Hasta hasta, Doktor secilenDoktor) {
+        if (hasta == null) {
+            return;
+        }
+
+        LocalDateTime simdi = LocalDateTime.now(ISTANBUL);
+        int bugun = tarihSayisi(simdi.toLocalDate());
+        int suAn = saatSayisi(simdi.toLocalTime());
+        List<Randevu> ayniHastanedekiAktifRandevular = randevuRepository
+                .findByHastaOidAndDurumOrderByRandevuTarihiAscRandevuSaatiAsc(
+                        hasta.getOid(),
+                        "AKTIF")
+                .stream()
+                .filter(randevu -> Objects.equals(
+                        secilenDoktor.getHastaneOid(),
+                        randevu.getHastaneOid()))
+                .filter(randevu -> randevu.getRandevuTarihi() > bugun
+                        || (randevu.getRandevuTarihi() == bugun
+                                && randevu.getRandevuSaati() > suAn))
+                .toList();
+
+        if (ayniHastanedekiAktifRandevular.isEmpty()) {
+            return;
+        }
+
+        Set<UUID> mevcutDoktorOidleri = ayniHastanedekiAktifRandevular.stream()
+                .map(Randevu::getDoktorOid)
+                .collect(Collectors.toSet());
+        boolean ayniBranstaRandevuVar = doktorRepository.findAllById(mevcutDoktorOidleri)
+                .stream()
+                .anyMatch(doktor -> Objects.equals(
+                        secilenDoktor.getBransOid(),
+                        doktor.getBransOid()));
+
+        if (ayniBranstaRandevuVar) {
+            throw new RandevuCakismaException(
+                    "Bu TCKN ile aynı branşta aktif bir randevu zaten bulunmaktadır.");
+        }
     }
 
     private List<MusaitSaatResponse> saatleriHesapla(Doktor doktor, LocalDate tarih) {

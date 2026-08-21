@@ -6,19 +6,25 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hastane.dto.RandevuRequest;
 import com.hastane.dto.DoluSaatResponse;
+import com.hastane.dto.PersonelRandevuResponse;
 import com.hastane.entity.Randevu;
 import com.hastane.entity.Doktor;
+import com.hastane.entity.Hasta;
 import com.hastane.exception.DoktorBulunamadiException;
 import com.hastane.exception.GecersizRandevuBilgisiException;
 import com.hastane.exception.RandevuCakismaException;
 import com.hastane.repository.DoktorRepository;
+import com.hastane.repository.HastaRepository;
 import com.hastane.repository.RandevuRepository;
 
 @Service
@@ -26,12 +32,15 @@ public class RandevuService {
 
     private final RandevuRepository randevuRepository;
     private final DoktorRepository doktorRepository;
+    private final HastaRepository hastaRepository;
 
     public RandevuService(
             RandevuRepository randevuRepository,
-            DoktorRepository doktorRepository) {
+            DoktorRepository doktorRepository,
+            HastaRepository hastaRepository) {
         this.randevuRepository = randevuRepository;
         this.doktorRepository = doktorRepository;
+        this.hastaRepository = hastaRepository;
     }
 
     @Transactional
@@ -106,7 +115,7 @@ public class RandevuService {
     }
 
     @Transactional(readOnly = true)
-    public List<Randevu> oturumdakiKullanicininGunlukRandevulariniGetir(
+    public List<PersonelRandevuResponse> oturumdakiKullanicininGunlukRandevulariniGetir(
             UUID kullaniciOid,
             String rol,
             Integer randevuTarihi) {
@@ -116,7 +125,7 @@ public class RandevuService {
         }
         randevuTarihiniDogrula(randevuTarihi);
 
-        return switch (rol.toUpperCase(Locale.ROOT)) {
+        List<Randevu> randevular = switch (rol.toUpperCase(Locale.ROOT)) {
             case "DOKTOR" -> oturumdakiDoktorunGunlukRandevulariniGetir(
                     kullaniciOid,
                     randevuTarihi);
@@ -129,6 +138,49 @@ public class RandevuService {
             default -> throw new GecersizRandevuBilgisiException(
                     "Desteklenmeyen kullanici rolu.");
         };
+        return personelRandevuResponseListesi(randevular);
+    }
+
+    private List<PersonelRandevuResponse> personelRandevuResponseListesi(
+            List<Randevu> randevular) {
+        Map<UUID, Hasta> hastalar = hastaRepository.findAllById(
+                        randevular.stream().map(Randevu::getHastaOid).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Hasta::getOid, Function.identity()));
+        Map<UUID, Doktor> doktorlar = doktorRepository.findAllById(
+                        randevular.stream().map(Randevu::getDoktorOid).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Doktor::getOid, Function.identity()));
+
+        return randevular.stream()
+                .map(randevu -> new PersonelRandevuResponse(
+                        randevu.getOid(),
+                        randevu.getRandevuTarihi(),
+                        randevu.getRandevuSaati(),
+                        hastaAdSoyad(hastalar.get(randevu.getHastaOid())),
+                        doktorAdSoyad(doktorlar.get(randevu.getDoktorOid())),
+                        randevu.getDurum()))
+                .toList();
+    }
+
+    private String hastaAdSoyad(Hasta hasta) {
+        if (hasta == null) {
+            return "Hasta bilgisi bulunamadı";
+        }
+        return adSoyad(hasta.getAd(), hasta.getSoyad());
+    }
+
+    private String doktorAdSoyad(Doktor doktor) {
+        if (doktor == null) {
+            return "Doktor bilgisi bulunamadı";
+        }
+        return adSoyad(doktor.getAd(), doktor.getSoyad());
+    }
+
+    private String adSoyad(String ad, String soyad) {
+        return java.util.stream.Stream.of(ad, soyad)
+                .filter(deger -> deger != null && !deger.isBlank())
+                .collect(Collectors.joining(" "));
     }
 
     @Transactional(readOnly = true)

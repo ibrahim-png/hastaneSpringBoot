@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hastane.dto.RandevuRequest;
 import com.hastane.dto.DoluSaatResponse;
+import com.hastane.dto.PersonelRandevuResponse;
 import com.hastane.entity.Randevu;
 import com.hastane.service.RandevuService;
 
@@ -71,11 +72,11 @@ public class RandevuController {
 
     @GetMapping(value = "/ben", params = "randevuTarihi")
     @PreAuthorize("hasAnyRole('MUDUR', 'DOKTOR')")
-    public ResponseEntity<List<Randevu>> oturumdakiKullanicininGunlukRandevulariniGetir(
+    public ResponseEntity<List<PersonelRandevuResponse>> oturumdakiKullanicininGunlukRandevulariniGetir(
             @RequestParam Integer randevuTarihi,
             @AuthenticationPrincipal Jwt jwt) {
 
-        List<Randevu> randevular = randevuService
+        List<PersonelRandevuResponse> randevular = randevuService
                 .oturumdakiKullanicininGunlukRandevulariniGetir(
                         UUID.fromString(jwt.getSubject()),
                         jwt.getClaimAsString("rol"),

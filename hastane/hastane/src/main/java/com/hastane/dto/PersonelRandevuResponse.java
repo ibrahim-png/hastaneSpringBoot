@@ -2,11 +2,11 @@ package com.hastane.dto;
 
 import java.util.UUID;
 
-public record MisafirRandevuResponse(
+public record PersonelRandevuResponse(
         UUID randevuOid,
         Integer randevuTarihi,
         Integer randevuSaati,
-        String doktor,
-        String brans,
+        String hastaAdSoyad,
+        String doktorAdSoyad,
         String durum) {
 }
