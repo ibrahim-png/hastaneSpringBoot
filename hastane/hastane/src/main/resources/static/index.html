@@ -97,7 +97,7 @@
         .calendar-head h2 { margin: 0; font-size: 1.2rem; text-transform: capitalize; }
         .calendar-nav { display: flex; gap: 7px; }
         .icon-button { width: 38px; height: 38px; border: 1px solid #d8e1e7; border-radius: 9px; color: #385069; background: #fff; font-size: 1.2rem; }
-        .weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; }
+        .weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 6px; }
         .weekdays span { padding: 8px 0; color: #8a96a8; font-size: .7rem; font-weight: 850; text-align: center; }
         .day, .empty-day { aspect-ratio: 1.07; min-height: 53px; }
         .day { position: relative; border: 1px solid transparent; border-radius: 11px; color: #2a3549; background: #f7f9fb; font-weight: 720; }
@@ -122,7 +122,7 @@
         .spinner { width: 28px; height: 28px; margin: 0 auto 10px; border: 3px solid #dce6e7; border-top-color: #087f75; border-radius: 50%; animation: spin .7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 880px) { .planner { grid-template-columns: 1fr; } }
-        @media (max-width: 560px) { .topbar { padding: 11px 14px; } .brand span:last-child { display: none; } .patient-hero { padding-top: 34px; } .field-grid { grid-template-columns: 1fr; } .field-grid .field { margin-bottom: 15px; } .slots { grid-template-columns: repeat(3,1fr); } .card-body, .card-head { padding-left: 18px; padding-right: 18px; } .user-copy { display: none; } .appointment { grid-template-columns: 55px 1fr; } .status { grid-column: 2; justify-self: start; } }
+        @media (max-width: 560px) { .topbar { padding: 11px 14px; } .brand span:last-child { display: none; } .patient-hero { padding-top: 34px; } .field-grid { grid-template-columns: 1fr; } .field-grid .field { margin-bottom: 15px; } .slots { grid-template-columns: repeat(3,1fr); } .card-body, .card-head { padding-left: 18px; padding-right: 18px; } .user-copy { display: none; } .dashboard-content { width: calc(100% - 20px); padding-top: 24px; } .calendar-card { min-width: 0; padding: 15px 10px; } .weekdays, .calendar-grid { gap: 3px; } .weekdays span { padding: 6px 0; font-size: .62rem; } .day, .empty-day { min-width: 0; min-height: 0; aspect-ratio: 1; } .day { padding: 0; font-size: .78rem; } .appointment { grid-template-columns: 55px 1fr; } .status { grid-column: 2; justify-self: start; } }
     </style>
 </head>
 <body>
