@@ -8,5 +8,6 @@ public record PersonelRandevuResponse(
         Integer randevuSaati,
         String hastaAdSoyad,
         String doktorAdSoyad,
+        String brans,
         String durum) {
 }

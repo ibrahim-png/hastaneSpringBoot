@@ -21,12 +21,14 @@ import com.hastane.dto.RandevuRequest;
 import com.hastane.dto.DoluSaatResponse;
 import com.hastane.dto.PersonelRandevuResponse;
 import com.hastane.entity.Doktor;
+import com.hastane.entity.Brans;
 import com.hastane.entity.Hasta;
 import com.hastane.entity.Randevu;
 import com.hastane.exception.GecersizRandevuBilgisiException;
 import com.hastane.exception.RandevuCakismaException;
 import com.hastane.repository.RandevuRepository;
 import com.hastane.repository.DoktorRepository;
+import com.hastane.repository.BransRepository;
 import com.hastane.repository.HastaRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,6 +43,9 @@ class RandevuServiceTests {
     @Mock
     private HastaRepository hastaRepository;
 
+    @Mock
+    private BransRepository bransRepository;
+
     private RandevuService randevuService;
     private RandevuRequest request;
 
@@ -49,7 +54,8 @@ class RandevuServiceTests {
         randevuService = new RandevuService(
                 randevuRepository,
                 doktorRepository,
-                hastaRepository);
+                hastaRepository,
+                bransRepository);
 
         request = new RandevuRequest();
         request.setDoktorOid(UUID.randomUUID());
@@ -164,7 +170,6 @@ class RandevuServiceTests {
                 .thenReturn(List.of(randevu));
         when(hastaRepository.findAllById(List.of(hasta.getOid()))).thenReturn(List.of(hasta));
         when(doktorRepository.findAllById(List.of(doktor.getOid()))).thenReturn(List.of(doktor));
-
         List<PersonelRandevuResponse> sonuc = randevuService
                 .oturumdakiKullanicininGunlukRandevulariniGetir(
                         kullaniciOid,
@@ -188,6 +193,8 @@ class RandevuServiceTests {
                 .thenReturn(List.of(randevu));
         when(hastaRepository.findAllById(List.of(hasta.getOid()))).thenReturn(List.of(hasta));
         when(doktorRepository.findAllById(List.of(doktor.getOid()))).thenReturn(List.of(doktor));
+        Brans brans = bransOlustur(doktor);
+        when(bransRepository.findAllById(List.of(brans.getOid()))).thenReturn(List.of(brans));
 
         List<PersonelRandevuResponse> sonuc = randevuService
                 .oturumdakiKullanicininGunlukRandevulariniGetir(
@@ -197,6 +204,7 @@ class RandevuServiceTests {
 
         assertEquals("Ali Kaya", sonuc.getFirst().hastaAdSoyad());
         assertEquals("Ayse Yilmaz", sonuc.getFirst().doktorAdSoyad());
+        assertEquals("Kardiyoloji", sonuc.getFirst().brans());
         verify(randevuRepository).findByRandevuTarihiOrderByRandevuSaatiAsc(
                 request.getRandevuTarihi());
     }
@@ -246,7 +254,15 @@ class RandevuServiceTests {
         doktor.setOid(request.getDoktorOid());
         doktor.setAd("Ayse");
         doktor.setSoyad("Yilmaz");
+        doktor.setBransOid(UUID.randomUUID());
         return doktor;
+    }
+
+    private Brans bransOlustur(Doktor doktor) {
+        Brans brans = new Brans();
+        brans.setOid(doktor.getBransOid());
+        brans.setAd("Kardiyoloji");
+        return brans;
     }
 
     private Randevu randevuOlustur(UUID hastaOid, UUID doktorOid) {
