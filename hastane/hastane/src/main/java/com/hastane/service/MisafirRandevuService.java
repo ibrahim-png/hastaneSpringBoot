@@ -25,6 +25,7 @@ import com.hastane.dto.MevcutRandevuResponse;
 import com.hastane.dto.MisafirRandevuRequest;
 import com.hastane.dto.MisafirRandevuResponse;
 import com.hastane.dto.MusaitSaatResponse;
+import com.hastane.entity.Brans;
 import com.hastane.entity.Doktor;
 import com.hastane.entity.Hasta;
 import com.hastane.entity.Randevu;
@@ -129,11 +130,20 @@ public class MisafirRandevuService {
                         randevular.stream().map(Randevu::getDoktorOid).distinct().toList())
                 .stream()
                 .collect(Collectors.toMap(Doktor::getOid, doktor -> doktor));
+        Map<UUID, Brans> branslar = bransRepository.findAllById(
+                        doktorlar.values().stream()
+                                .map(Doktor::getBransOid)
+                                .filter(Objects::nonNull)
+                                .distinct()
+                                .toList())
+                .stream()
+                .collect(Collectors.toMap(Brans::getOid, brans -> brans));
 
         return randevular.stream()
                 .map(randevu -> mevcutRandevuResponseOlustur(
                         randevu,
-                        doktorlar.get(randevu.getDoktorOid())))
+                        doktorlar.get(randevu.getDoktorOid()),
+                        branslar))
                 .toList();
     }
 
@@ -358,7 +368,8 @@ public class MisafirRandevuService {
 
     private MevcutRandevuResponse mevcutRandevuResponseOlustur(
             Randevu randevu,
-            Doktor doktor) {
+            Doktor doktor,
+            Map<UUID, Brans> branslar) {
         String doktorAdi = doktor == null
                 ? "Doktor bilgisi bulunamadi"
                 : java.util.stream.Stream.of(
@@ -367,11 +378,17 @@ public class MisafirRandevuService {
                                 doktor.getSoyad())
                         .filter(deger -> deger != null && !deger.isBlank())
                         .collect(Collectors.joining(" "));
+        String bransAdi = doktor == null
+                ? "Branş bilgisi bulunamadı"
+                : java.util.Optional.ofNullable(branslar.get(doktor.getBransOid()))
+                        .map(Brans::getAd)
+                        .orElse("Branş bilgisi bulunamadı");
         return new MevcutRandevuResponse(
                 randevu.getOid(),
                 randevu.getRandevuTarihi(),
                 randevu.getRandevuSaati(),
                 doktorAdi,
+                bransAdi,
                 randevu.getDurum());
     }
 

@@ -169,6 +169,11 @@ class MisafirRandevuServiceTests {
                 .thenReturn(List.of(randevu));
         when(doktorRepository.findAllById(List.of(doktor.getOid())))
                 .thenReturn(List.of(doktor));
+        Brans brans = new Brans();
+        brans.setOid(doktor.getBransOid());
+        brans.setAd("Kardiyoloji");
+        when(bransRepository.findAllById(List.of(doktor.getBransOid())))
+                .thenReturn(List.of(brans));
 
         List<MevcutRandevuResponse> sonuc = service.hastaninAktifRandevulariniGetir(
                 hastaBilgileri());
@@ -176,6 +181,7 @@ class MisafirRandevuServiceTests {
         assertEquals(1, sonuc.size());
         assertEquals(randevu.getOid(), sonuc.getFirst().randevuOid());
         assertEquals("Dr. Ayse Yilmaz", sonuc.getFirst().doktor());
+        assertEquals("Kardiyoloji", sonuc.getFirst().brans());
     }
 
     @Test

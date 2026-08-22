@@ -7,5 +7,6 @@ public record MevcutRandevuResponse(
         Integer randevuTarihi,
         Integer randevuSaati,
         String doktor,
+        String brans,
         String durum) {
 }

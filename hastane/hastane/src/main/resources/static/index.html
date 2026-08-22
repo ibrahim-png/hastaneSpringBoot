@@ -339,7 +339,7 @@
             const doctor = document.createElement("strong");
             const detail = document.createElement("small");
             doctor.textContent = booking.doktor;
-            detail.textContent = `${formatAppointmentDate(booking.randevuTarihi)} · ${formatTime(booking.randevuSaati)}`;
+            detail.textContent = `${booking.brans || "Branş bilgisi bulunamadı"} · ${formatAppointmentDate(booking.randevuTarihi)} · ${formatTime(booking.randevuSaati)}`;
             info.append(doctor, detail);
             const cancel = document.createElement("button");
             cancel.type = "button";
