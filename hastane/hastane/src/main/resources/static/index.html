@@ -20,6 +20,7 @@
         .patient-hero-inner { width: min(1180px, 100%); margin: 0 auto; }
         .eyebrow { margin: 0 0 9px; color: #0b8f83; font-size: .75rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
         .patient-hero .eyebrow { color: #76e4da; }
+        .patient-hospital-logo { display: block; width: 150px; height: 150px; margin: 0 0 22px; border-radius: 20px; object-fit: contain; background: #fff; box-shadow: 0 16px 36px rgba(0,0,0,.18); }
         .patient-hero h1 { margin: 0 0 12px; max-width: 700px; font-size: clamp(2rem, 5vw, 3.6rem); line-height: 1.08; letter-spacing: -.05em; }
         .patient-hero p:last-child { max-width: 650px; margin: 0; color: #c5e7e3; font-size: 1.03rem; line-height: 1.65; }
         .booking-shell { width: min(1180px, calc(100% - 32px)); margin: -68px auto 60px; }
@@ -122,17 +123,18 @@
         .spinner { width: 28px; height: 28px; margin: 0 auto 10px; border: 3px solid #dce6e7; border-top-color: #087f75; border-radius: 50%; animation: spin .7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 880px) { .planner { grid-template-columns: 1fr; } }
-        @media (max-width: 560px) { .topbar { padding: 11px 14px; } .brand span:last-child { display: none; } .patient-hero { padding-top: 34px; } .field-grid { grid-template-columns: 1fr; } .field-grid .field { margin-bottom: 15px; } .slots { grid-template-columns: repeat(3,1fr); } .card-body, .card-head { padding-left: 18px; padding-right: 18px; } .user-copy { display: none; } .dashboard-content { width: calc(100% - 20px); padding-top: 24px; } .calendar-card { min-width: 0; padding: 15px 10px; } .weekdays, .calendar-grid { gap: 3px; } .weekdays span { padding: 6px 0; font-size: .62rem; } .day, .empty-day { min-width: 0; min-height: 0; aspect-ratio: 1; } .day { padding: 0; font-size: .78rem; } .appointment { grid-template-columns: 55px 1fr; } .status { grid-column: 2; justify-self: start; } }
+        @media (max-width: 560px) { .topbar { padding: 11px 14px; } .brand span:last-child { display: none; } .patient-hero { padding-top: 34px; } .patient-hospital-logo { width: 120px; height: 120px; margin-bottom: 18px; border-radius: 16px; } .field-grid { grid-template-columns: 1fr; } .field-grid .field { margin-bottom: 15px; } .slots { grid-template-columns: repeat(3,1fr); } .card-body, .card-head { padding-left: 18px; padding-right: 18px; } .user-copy { display: none; } .dashboard-content { width: calc(100% - 20px); padding-top: 24px; } .calendar-card { min-width: 0; padding: 15px 10px; } .weekdays, .calendar-grid { gap: 3px; } .weekdays span { padding: 6px 0; font-size: .62rem; } .day, .empty-day { min-width: 0; min-height: 0; aspect-ratio: 1; } .day { padding: 0; font-size: .78rem; } .appointment { grid-template-columns: 55px 1fr; } .status { grid-column: 2; justify-self: start; } }
     </style>
 </head>
 <body>
 <section id="patientView">
     <header class="topbar">
-        <div class="brand"><span class="brand-mark">+</span><span>Hastane Randevu</span></div>
+        <div class="brand"><span class="brand-mark">+</span><span id="patientBrandName">Hastane Randevu</span></div>
         <button class="outline-button" id="openStaffLogin" type="button">Personel Girişi</button>
     </header>
     <div class="patient-hero">
         <div class="patient-hero-inner">
+            <img class="patient-hospital-logo" id="patientHospitalLogo" alt="" hidden>
             <p class="eyebrow">Online randevu</p>
             <h1>Size uygun doktoru ve saati seçin.</h1>
             <p>Üyelik oluşturmadan bilgilerinizi girin, branş ve doktor seçiminizi yaparak randevunuzu tamamlayın.</p>
@@ -214,6 +216,12 @@
     const PATIENT_LOOKUP_TURNSTILE_ACTION = "patient_lookup";
     const TOKEN_KEY = "hastanePersonelToken";
     const USER_KEY = "hastanePersonel";
+    const HOSPITAL_BRANDING = {
+        "tekdendenizli.hekimgo.com.tr": {
+            ad: "Özel Denizli Tekden Hastanesi",
+            logo: "/logos/tekdendenizli.jpg"
+        }
+    };
     const today = new Date();
     let selectedSlot = null;
     let appointmentsRequest;
@@ -222,6 +230,19 @@
     let patientLookupTurnstileWidgetId = null;
     let patientLookupTurnstileToken = "";
     const state = { token: sessionStorage.getItem(TOKEN_KEY), user: storedUser(), selectedDate: new Date(today.getFullYear(),today.getMonth(),today.getDate()), visibleMonth: new Date(today.getFullYear(),today.getMonth(),1) };
+
+    function hastaneMarkasiniUygula() {
+        const marka = HOSPITAL_BRANDING[window.location.hostname.toLowerCase()];
+        if (!marka) return;
+        const logo = document.querySelector("#patientHospitalLogo");
+        logo.src = marka.logo;
+        logo.alt = `${marka.ad} logosu`;
+        logo.hidden = false;
+        document.querySelector("#patientBrandName").textContent = marka.ad;
+        document.title = `${marka.ad} Randevu Sistemi`;
+    }
+
+    hastaneMarkasiniUygula();
 
     function storedUser() { try { return JSON.parse(sessionStorage.getItem(USER_KEY) || "null"); } catch { return null; } }
     async function readResponse(response) { const text = await response.text(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } }
